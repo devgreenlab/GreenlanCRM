@@ -37,7 +37,7 @@ import type { NavigationSettings } from '@/lib/firestore/types';
 
 function SidebarSkeleton() {
     return (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 p-2">
             {[...Array(8)].map((_, i) => (
                 <div key={i} className="flex items-center gap-2 p-2">
                     <Skeleton className="h-6 w-6 rounded" />
@@ -48,7 +48,27 @@ function SidebarSkeleton() {
     )
 }
 
+function StaticSidebarSkeleton() {
+    return (
+        <Sidebar variant="sidebar" collapsible="icon">
+            <SidebarHeader className="flex items-center justify-between">
+                <Logo />
+                <SidebarTrigger className="hidden md:flex" />
+            </SidebarHeader>
+            <SidebarContent>
+                <SidebarSkeleton />
+            </SidebarContent>
+            <SidebarFooter>
+                <div className="flex items-center gap-3 p-2">
+                    <Skeleton className="h-9 w-9 rounded-full" />
+                </div>
+            </SidebarFooter>
+        </Sidebar>
+    );
+}
+
 export function AppSidebar() {
+  const [hasMounted, setHasMounted] = React.useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
@@ -62,6 +82,9 @@ export function AppSidebar() {
   );
   const { data: navSettings, isLoading: isNavLoading } = useDoc<NavigationSettings>(navSettingsRef);
 
+  React.useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const visibleMenuItems = React.useMemo(() => {
     if (isProfileLoading || isNavLoading || !userProfile || !navSettings) {
@@ -112,6 +135,10 @@ export function AppSidebar() {
   };
 
   const isLoading = isUserLoading || isProfileLoading || isNavLoading;
+
+  if (!hasMounted) {
+    return <StaticSidebarSkeleton />;
+  }
 
   return (
     <Sidebar variant="sidebar" collapsible="icon">
