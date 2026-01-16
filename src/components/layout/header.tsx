@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, Search, LogOut } from 'lucide-react';
+import { Bell, LogOut, Search, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '@/firebase';
@@ -91,7 +91,10 @@ export function Header() {
                     )}
                 </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push('/pengaturan')}>Settings</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push('/pengaturan/profil')}>
+                <User className="mr-2 h-4 w-4" />
+                <span>Profil</span>
+              </DropdownMenuItem>
               <DropdownMenuItem>Support</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={handleLogout}>

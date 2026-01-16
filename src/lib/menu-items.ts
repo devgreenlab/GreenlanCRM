@@ -11,6 +11,7 @@ import {
   Settings,
   Shield,
   ShoppingCart,
+  User,
   UserCog,
   Users,
   View,
@@ -86,6 +87,7 @@ export const MENU_ITEMS: MenuItem[] = [
     title: 'Pengaturan',
     icon: Settings,
     subItems: [
+      { key: 'profil', href: '/pengaturan/profil', title: 'Profil', icon: User },
       { key: 'navigasi', href: '/pengaturan/navigasi', title: 'Navigasi', icon: ListFilter },
       { key: 'integrasi', href: '/pengaturan/integrasi', title: 'Integrasi', icon: Plug },
       { key: 'users', href: '/pengaturan/users', title: 'Users', icon: UserCog },

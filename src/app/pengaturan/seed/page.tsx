@@ -56,21 +56,10 @@ export default function SeedPage() {
         }, { merge: true });
 
         batch.set(navRef, {
-            menu: [
-                { key:"dashboard", title:"Dashboard", href:"/dashboard", order:1 },
-                { key:"obrolan", title:"Obrolan", href:"/obrolan", order:2 },
-                { key:"kontak", title:"Kontak", href:"/kontak", order:3 },
-                { key:"prospek", title:"Prospek", href:"/prospek", order:4 },
-                { key:"costing", title:"Costing Harga", href:"/costing-harga", order:5 },
-                { key:"penawaran", title:"Penawaran", href:"/penawaran", order:6 },
-                { key:"tagihan", title:"Tagihan", href:"/tagihan", order:7 },
-                { key:"pesanan", title:"Pesanan", href:"/pesanan", order:8 },
-                { key:"pengaturan", title:"Pengaturan", href:"/pengaturan", order:9 }
-            ],
             roleAccess: {
-                SUPER_ADMIN: ["dashboard","obrolan","kontak","prospek","costing","penawaran","tagihan","pesanan","pengaturan"],
-                HEAD_SALES: ["dashboard","obrolan","kontak","prospek","penawaran","tagihan","pesanan"],
-                SALES: ["dashboard","obrolan","kontak","prospek"]
+                SUPER_ADMIN: ["dashboard","obrolan","kontak","prospek","costing-harga","penawaran","tagihan","pesanan","pengaturan","profil","navigasi","integrasi","users","teams","pipeline"],
+                HEAD_SALES: ["dashboard","obrolan","kontak","prospek","penawaran","tagihan","pesanan","pengaturan","profil"],
+                SALES: ["dashboard","obrolan","kontak","prospek","pengaturan","profil"]
             }
         }, { merge: true });
 
