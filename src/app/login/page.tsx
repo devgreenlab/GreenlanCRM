@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
 import { useAuth } from '@/firebase';
@@ -120,10 +119,7 @@ export default function LoginPage() {
               </form>
             </Form>
             <p className="mt-6 text-center text-sm text-muted-foreground">
-              Belum punya akun?{' '}
-              <Link href="/signup" className="font-semibold text-primary hover:underline">
-                Daftar di sini
-              </Link>
+              Akun dibuat oleh Super Admin.
             </p>
           </CardContent>
         </Card>
