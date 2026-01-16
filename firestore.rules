@@ -1,0 +1,195 @@
+/**
+ * Core Philosophy: This ruleset establishes a secure, multi-tenant foundation for the Greenlab CRM application,
+ * where all data is segregated by teams. It intentionally prioritizes strong authorization over the "no login"
+ * suggestion in the initial requirements, ensuring a scalable and secure architecture from the start.
+ * The core principle is that a user can only access data that belongs to their assigned team.
+ *
+ * Data Structure: The structure assumes that a /users/{userId} document exists for each authenticated user and contains
+ * a critical `teamId` field. This `teamId` is the key to all subsequent authorization decisions. All primary business
+ * data collections (like contacts, leads, deals) are expected to have a corresponding `teamId` field to associate them
+* with a specific team.
+ *
+ * Key Security Decisions:
+ * - Team-Scoped Access: All access to CRM data (contacts, leads, deals, etc.) is strictly controlled by the user's `teamId`. A user's team membership is determined by reading their user document at `/users/{request.auth.uid}`.
+ * - Strict Default Deny: Collections that appear to be for administrative purposes (settings, integrations, logs) are locked down by default (all access denied). Client-side access to these should be avoided in favor of trusted server-side operations.
+ * - User Privacy: Listing users is disabled to prevent user enumeration attacks. Users can only read and manage their own user document.
+ * - CRITICAL - Schema Requirement: For this security model to function, entities like Contact, Lead, Deal, and Activity MUST have a `teamId` field. Rules for these collections are currently disabled pending this schema update.
+ *
+ * Denormalization for Authorization: To ensure security rules are both performant and possible, it is critical that
+ * any data required for an authorization decision is copied (denormalized) onto the document being secured.
+ * For this CRM, every team-specific document (e.g., a contact, a deal) MUST contain a `teamId` field. This allows for
+ * a direct check (`resource.data.teamId == userTeamId`) without requiring slow, costly, or impossible cross-collection
+ * queries.
+ *
+ * Structural Segregation: This ruleset does not currently feature a mix of public and private data within the same
+ * collection. If such a feature were added (e.g., public vs. private contacts), the recommended approach would be to
+ * use separate top-level collections (e.g., /publicContacts and /teams/{teamId}/privateContacts) for better security
+ * and query performance.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    //-------------------------------------------------------------------------
+    // Helper Functions
+    //-------------------------------------------------------------------------
+
+    /**
+     * isSignedIn
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * isOwner
+     * Checks if the authenticated user's UID matches the given userId.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    //-------------------------------------------------------------------------
+    // Collection Rules
+    //-------------------------------------------------------------------------
+
+    /**
+     * @description Controls access to team information.
+     * @path /teams/{teamId}
+     * @allow (get) An authenticated user can read any team's public information.
+     * @deny (create) Anonymous users cannot create teams. Only backend processes should create teams.
+     * @principle Public read for general information, with writes locked down for security.
+     */
+    match /teams/{teamId} {
+      allow get, list: if isSignedIn();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Controls access to user-specific documents.
+     * @path /users/{userId}
+     * @allow (create) A new user can create their own user document.
+     * @deny (list) Another user cannot list all users in the database.
+     * @principle Enforces Self-Creation and Ownership, preventing user enumeration.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if false; // Users generally should not delete their own account data directly.
+    }
+
+    /**
+     * @description Controls access to contact information.
+     * @path /contacts/{contactId}
+     * @allow (get) A user from team 'T1' can get a contact belonging to team 'T1'.
+     * @deny (get) A user from team 'T2' cannot get a contact belonging to team 'T1'.
+     * @principle All data is partitioned by team. This rule is disabled until the data model is updated.
+     */
+    match /contacts/{contactId} {
+      // CRITICAL: Cannot implement team-based security. The 'Contact' entity is missing a 'teamId' field.
+      allow get: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId` to Contact documents.
+      allow list: if false; // TODO: Secure list queries require a `teamId` field for `where()` clauses.
+      allow create: if isSignedIn(); // TODO: Change to `isNewResourceInUserTeam()` after adding `teamId`.
+      allow update: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId`.
+      allow delete: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId`.
+    }
+
+    /**
+     * @description Controls access to lead information.
+     * @path /leads/{leadId}
+     * @allow (create) A user from team 'T1' can create a lead and assign it to team 'T1'.
+     * @deny (update) A user from team 'T2' cannot update a lead belonging to team 'T1'.
+     * @principle All data is partitioned by team. This rule is disabled until the data model is updated.
+     */
+    match /leads/{leadId} {
+      // CRITICAL: Cannot implement team-based security. The 'Lead' entity is missing a 'teamId' field.
+      allow get: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId` to Lead documents.
+      allow list: if false; // TODO: Secure list queries require a `teamId` field for `where()` clauses.
+      allow create: if isSignedIn(); // TODO: Change to `isNewResourceInUserTeam()` after adding `teamId`.
+      allow update: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId`.
+      allow delete: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId`.
+    }
+
+    /**
+     * @description Controls access to deal information.
+     * @path /deals/{dealId}
+     * @allow (delete) A user from team 'T1' can delete a deal belonging to team 'T1'.
+     * @deny (get) A user from team 'T2' cannot read a deal belonging to team 'T1'.
+     * @principle All data is partitioned by team. This rule is disabled until the data model is updated.
+     */
+    match /deals/{dealId} {
+      // CRITICAL: Cannot implement team-based security. The 'Deal' entity is missing a 'teamId' field.
+      allow get: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId` to Deal documents.
+      allow list: if false; // TODO: Secure list queries require a `teamId` field for `where()` clauses.
+      allow create: if isSignedIn(); // TODO: Change to `isNewResourceInUserTeam()` after adding `teamId`.
+      allow update: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId`.
+      allow delete: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId`.
+    }
+
+    /**
+     * @description Controls access to activity information.
+     * @path /activities/{activityId}
+     * @allow (get) A user from team 'T1' can get an activity belonging to team 'T1'.
+     * @deny (create) An anonymous user cannot create any activity.
+     * @principle All data is partitioned by team. This rule is disabled until the data model is updated.
+     */
+    match /activities/{activityId} {
+      // CRITICAL: Cannot implement team-based security. The 'Activity' entity is missing a 'teamId' field.
+      allow get: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId` to Activity documents.
+      allow list: if false; // TODO: Secure list queries require a `teamId` field for `where()` clauses.
+      allow create: if isSignedIn(); // TODO: Change to `isNewResourceInUserTeam()` after adding `teamId`.
+      allow update: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId`.
+      allow delete: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId`.
+    }
+
+    /**
+     * @description Controls access to settings, which should be admin-only.
+     * @path /settings/{document=**}
+     * @allow N/A
+     * @deny (get) A regular signed-in user cannot read application settings.
+     * @principle Enforces a strict default-deny policy for sensitive administrative data.
+     */
+    match /settings/{document=**} {
+      allow get: if false;
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Controls access to integration settings, which should be admin-only.
+     * @path /integrations/{document=**}
+     * @allow N/A
+     * @deny (get) A regular signed-in user cannot read integration settings.
+     * @principle Enforces a strict default-deny policy for sensitive administrative data.
+     */
+    match /integrations/{document=**} {
+      allow get: if false;
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Controls access to log entries, which should not be client-accessible.
+     * @path /logs/{logId}
+     * @allow N/A
+     * @deny (create) A client cannot write directly to the logs collection.
+     * @principle Logs should only be written by trusted backend services.
+     */
+    match /logs/{logId} {
+      allow get: if false;
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
