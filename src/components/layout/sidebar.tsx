@@ -1,8 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 
 import {
   Sidebar,
@@ -19,6 +18,7 @@ import { Logo } from '@/components/logo';
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
 
   return (
     <Sidebar variant="sidebar" collapsible="icon">
@@ -30,14 +30,12 @@ export function AppSidebar() {
           {MENU_ITEMS.map((item) => (
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
-                asChild
                 isActive={pathname === item.href}
                 tooltip={{ children: item.title }}
+                onClick={() => router.push(item.href)}
               >
-                <Link href={item.href}>
-                  <item.icon />
-                  <span>{item.title}</span>
-                </Link>
+                <item.icon />
+                <span>{item.title}</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
