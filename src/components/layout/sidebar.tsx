@@ -18,6 +18,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubItem,
   SidebarMenuSubButton,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import {
   Collapsible,
@@ -114,8 +115,9 @@ export function AppSidebar() {
 
   return (
     <Sidebar variant="sidebar" collapsible="icon">
-      <SidebarHeader>
+      <SidebarHeader className="flex items-center justify-between">
         <Logo />
+        <SidebarTrigger className="hidden md:flex" />
       </SidebarHeader>
       <SidebarContent>
         { isLoading ? <SidebarSkeleton /> : (
