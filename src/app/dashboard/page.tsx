@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import { DollarSign, BadgePercent, Users, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -142,19 +143,38 @@ function DashboardKpis() {
 
 export default function DashboardPage() {
   const { userProfile } = useUserProfile();
+  const [greeting, setGreeting] = React.useState('');
+
+  React.useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour >= 4 && hour < 12) {
+      setGreeting('Selamat Pagi');
+    } else if (hour >= 12 && hour < 15) {
+      setGreeting('Selamat Siang');
+    } else if (hour >= 15 && hour < 19) {
+      setGreeting('Selamat Sore');
+    } else {
+      setGreeting('Selamat Malam');
+    }
+  }, []);
 
   const formatRole = (role?: string) => {
     if (!role) return '';
     return role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
 
+  const firstName = userProfile?.name?.split(' ')[0] ?? '';
+
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight font-headline">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight font-headline">
+            {greeting && firstName ? `${greeting}, ${firstName}!` : 'Dashboard'}
+          </h1>
           <p className="text-muted-foreground mt-2 font-serif">
-            Selamat datang di dashboard Greenlab CRM Anda.{userProfile?.role ? ` Anda login sebagai ${formatRole(userProfile.role)}.` : ''}
+            Selamat datang kembali.{userProfile?.role ? ` Anda login sebagai ${formatRole(userProfile.role)}.` : ''}
           </p>
         </div>
       </div>
