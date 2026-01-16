@@ -2,7 +2,9 @@
 
 import * as React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, LogOut } from 'lucide-react';
+import { useUser, useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
 
 import {
   Sidebar,
@@ -22,12 +24,34 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+
 import { MENU_ITEMS, type SubMenuItem } from '@/lib/menu-items';
 import { Logo } from '@/components/logo';
 
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout failed', error);
+    }
+  };
+
+  const getInitials = (name = '') => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join('');
+  }
 
   const isSubItemActive = (subItems?: SubMenuItem[]): boolean => {
     if (!subItems) return false;
@@ -92,16 +116,29 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
-        <div className="flex items-center gap-3 p-2 rounded-md transition-colors hover:bg-sidebar-accent">
-          <Avatar className="h-9 w-9">
-            <AvatarImage src="https://picsum.photos/seed/1/100/100" data-ai-hint="profile picture" alt="User" />
-            <AvatarFallback>U</AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-            <span className="text-sm font-medium">User</span>
-            <span className="text-xs text-sidebar-foreground/70">user@example.com</span>
+        { isUserLoading ? (
+            <div className="flex items-center gap-3 p-2">
+                <Skeleton className="h-9 w-9 rounded-full" />
+                <div className="flex flex-col gap-1.5 group-data-[collapsible=icon]:hidden">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-3 w-28" />
+                </div>
+            </div>
+        ) : user ? (
+            <div className="flex items-center gap-3 p-2 rounded-md transition-colors">
+            <Avatar className="h-9 w-9">
+              <AvatarImage src={`https://i.pravatar.cc/150?u=${user.email}`} data-ai-hint="profile picture" alt={user.displayName || 'User'} />
+              <AvatarFallback>{getInitials(user.displayName || '')}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+              <span className="text-sm font-medium">{user.displayName}</span>
+              <span className="text-xs text-sidebar-foreground/70">{user.email}</span>
+            </div>
+            <Button variant="ghost" size="icon" className="ml-auto h-8 w-8 group-data-[collapsible=icon]:hidden" onClick={handleLogout}>
+                <LogOut className="h-4 w-4"/>
+            </Button>
           </div>
-        </div>
+        ) : null}
       </SidebarFooter>
     </Sidebar>
   );

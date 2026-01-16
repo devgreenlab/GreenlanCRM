@@ -1,0 +1,219 @@
+{
+  "entities": {
+    "Team": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Team",
+      "type": "object",
+      "description": "Represents a team within the Greenlab CRM.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the team."
+        },
+        "headSalesUid": {
+          "type": "string",
+          "description": "The user ID of the Head of Sales for this team."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["name"]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the Greenlab CRM.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Full name of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user, used as a unique identifier/username."
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of the user.",
+          "enum": ["SUPER_ADMIN", "HEAD_SALES", "SALES"]
+        },
+        "teamId": {
+          "type": "string",
+          "description": "The ID of the team this user belongs to."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Whether the user account is active."
+        },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+        }
+      },
+      "required": ["name", "email", "role", "isActive"]
+    },
+    "Contact": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Contact",
+      "type": "object",
+      "description": "Represents a contact in the CRM.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the contact." },
+        "teamId": { "type": "string", "description": "The ID of the team this contact belongs to." },
+        "firstName": { "type": "string", "description": "First name of the contact." },
+        "lastName": { "type": "string", "description": "Last name of the contact." },
+        "email": { "type": "string", "description": "Email address of the contact.", "format": "email" },
+        "phone": { "type": "string", "description": "Phone number of the contact." },
+        "company": { "type": "string", "description": "Company the contact works for." },
+        "title": { "type": "string", "description": "Job title of the contact." }
+      },
+      "required": ["id", "teamId", "firstName", "lastName", "email"]
+    },
+    "Lead": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Lead",
+      "type": "object",
+      "description": "Represents a lead in the CRM.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the lead." },
+        "teamId": { "type": "string", "description": "The ID of the team this lead belongs to." },
+        "contactId": { "type": "string", "description": "Reference to Contact. (Relationship: Contact 1:N Lead)" },
+        "source": { "type": "string", "description": "Source of the lead (e.g., website, referral, advertisement)." },
+        "stage": { "type": "string", "description": "Current stage of the lead in the sales pipeline (e.g., prospect, qualified, demo, proposal, closed)." },
+        "priority": { "type": "string", "description": "Priority of the lead (e.g. high, medium, low)." }
+      },
+      "required": ["id", "teamId", "contactId", "source", "stage"]
+    },
+    "Deal": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Deal",
+      "type": "object",
+      "description": "Represents a deal or opportunity in the CRM.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the deal." },
+        "teamId": { "type": "string", "description": "The ID of the team this deal belongs to." },
+        "leadId": { "type": "string", "description": "Reference to Lead. (Relationship: Lead 1:N Deal)" },
+        "name": { "type": "string", "description": "Name of the deal." },
+        "amount": { "type": "number", "description": "Value of the deal." },
+        "stage": { "type": "string", "description": "Current stage of the deal in the sales pipeline (e.g., qualification, proposal, negotiation, closed won, closed lost)." },
+        "closeDate": { "type": "string", "description": "Expected close date of the deal.", "format": "date-time" }
+      },
+      "required": ["id", "teamId", "leadId", "name", "amount", "stage", "closeDate"]
+    },
+    "Activity": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Activity",
+      "type": "object",
+      "description": "Represents an activity related to a contact, lead, or deal.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the activity." },
+        "teamId": { "type": "string", "description": "The ID of the team this activity belongs to." },
+        "type": { "type": "string", "description": "Type of activity (e.g., call, email, meeting, task)." },
+        "subject": { "type": "string", "description": "Subject of the activity." },
+        "description": { "type": "string", "description": "Description of the activity." },
+        "dueDate": { "type": "string", "description": "Due date of the activity.", "format": "date-time" },
+        "contactId": { "type": "string", "description": "Reference to Contact. (Relationship: Contact 1:N Activity)" },
+        "leadId": { "type": "string", "description": "Reference to Lead. (Relationship: Lead 1:N Activity)" },
+        "dealId": { "type": "string", "description": "Reference to Deal. (Relationship: Deal 1:N Activity)" }
+      },
+      "required": ["id", "teamId", "type", "subject", "dueDate"]
+    },
+    "PipelineStage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PipelineStage",
+      "type": "object",
+      "description": "Represents a stage in the sales pipeline.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the pipeline stage." },
+        "name": { "type": "string", "description": "Name of the pipeline stage." },
+        "order": { "type": "number", "description": "Order of the stage in the pipeline." },
+        "pipelineType": { "type": "string", "description": "Type of pipeline this stage belongs to (e.g. lead, deal)." }
+      },
+      "required": ["id", "name", "order", "pipelineType"]
+    },
+    "IntegrationSetting": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "IntegrationSetting",
+      "type": "object",
+      "description": "Represents an integration setting for external services.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the integration setting." },
+        "integrationType": { "type": "string", "description": "Type of integration (e.g., WhatsApp, Email, Calendar)." },
+        "settingKey": { "type": "string", "description": "Key for the specific setting." },
+        "settingValue": { "type": "string", "description": "Value for the specific setting." }
+      },
+      "required": ["id", "integrationType", "settingKey", "settingValue"]
+    },
+    "Log": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Log",
+      "type": "object",
+      "description": "Represents a log entry for auditing or debugging purposes.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the log entry." },
+        "timestamp": { "type": "string", "description": "Timestamp of when the log entry was created.", "format": "date-time" },
+        "level": { "type": "string", "description": "Log level (e.g., INFO, WARN, ERROR)." },
+        "message": { "type": "string", "description": "Log message." },
+        "userId": { "type": "string", "description": "Reference to User. (Relationship: User 1:N Log) User associated with the log entry." }
+      },
+      "required": ["id", "timestamp", "level", "message"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/teams/{teamId}",
+        "definition": { "schema": { "$ref": "#/entities/Team" }, "description": "Stores team information." }
+      },
+      {
+        "path": "/users/{userId}",
+        "definition": { "schema": { "$ref": "#/entities/User" }, "description": "Stores user information." }
+      },
+      {
+        "path": "/contacts/{contactId}",
+        "definition": { "schema": { "$ref": "#/entities/Contact" }, "description": "Stores contact information." }
+      },
+      {
+        "path": "/leads/{leadId}",
+        "definition": { "schema": { "$ref": "#/entities/Lead" }, "description": "Stores lead information." }
+      },
+      {
+        "path": "/deals/{dealId}",
+        "definition": { "schema": { "$ref": "#/entities/Deal" }, "description": "Stores deal information." }
+      },
+      {
+        "path": "/activities/{activityId}",
+        "definition": { "schema": { "$ref": "#/entities/Activity" }, "description": "Stores activity information." }
+      },
+      {
+        "path": "/settings/pipeline/stages/{stageId}",
+        "definition": { "schema": { "$ref": "#/entities/PipelineStage" }, "description": "Stores pipeline stage settings." }
+      },
+      {
+        "path": "/settings/general/{settingId}",
+        "definition": { "schema": { "$ref": "#/entities/Setting" }, "description": "Stores general settings." }
+      },
+      {
+        "path": "/integrations/settings/{integrationSettingId}",
+        "definition": { "schema": { "$ref": "#/entities/IntegrationSetting" }, "description": "Stores integration settings." }
+      },
+      {
+        "path": "/logs/{logId}",
+        "definition": { "schema": { "$ref": "#/entities/Log" }, "description": "Stores log entries." }
+      }
+    ],
+    "reasoning": "This Firestore structure is designed to support a Greenlab CRM application. The entities cover all core aspects of a CRM: teams, users, contacts, leads, deals, and activities. It also includes settings for pipelines and integrations, and a collection for logs. For a public demo, security rules are temporarily relaxed to allow public read access, but the data model includes 'teamId' on relevant entities to facilitate a straightforward transition to a multi-tenant security model once user authentication is implemented. This structure avoids complex joins by keeping related data in separate top-level collections, which is efficient for Firestore queries."
+  }
+}

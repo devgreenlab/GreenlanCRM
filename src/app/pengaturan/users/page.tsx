@@ -1,27 +1,16 @@
 'use client';
 
 import * as React from 'react';
-import { PlusCircle, Users } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
 import type { UserProfile, Team } from '@/lib/firestore/types';
 
-import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/shared/error-state';
 import { EmptyState } from '@/components/shared/empty-state';
 import { UsersTable } from '@/components/admin/users/users-table';
-import { UserForm } from '@/components/admin/users/user-form';
 import { Card, CardContent } from '@/components/ui/card';
 
 function PageSkeleton() {
@@ -50,7 +39,6 @@ function PageSkeleton() {
 }
 
 export default function UsersPage() {
-  const [isFormOpen, setIsFormOpen] = React.useState(false);
   const firestore = useFirestore();
 
   const usersQuery = useMemoFirebase(
@@ -84,16 +72,8 @@ export default function UsersPage() {
       return (
         <EmptyState
           icon={Users}
-          title="Belum ada pengguna"
-          description="Tambahkan pengguna pertama Anda untuk memulai."
-          action={
-            <DialogTrigger asChild>
-              <Button>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Tambah Pengguna
-              </Button>
-            </DialogTrigger>
-          }
+          title="Belum ada pengguna terdaftar"
+          description="Pengguna baru harus mendaftar melalui halaman signup. Anda bisa mengelola peran mereka di sini setelah mereka mendaftar."
         />
       );
     }
@@ -101,28 +81,16 @@ export default function UsersPage() {
   };
 
   return (
-    <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+    <>
       <div className="flex items-center justify-between">
-        <div/>
-        <DialogTrigger asChild>
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Tambah Pengguna
-          </Button>
-        </DialogTrigger>
+        <div>
+          {/* The title for this section can be here */}
+        </div>
+        <div>
+           {/* Add user button is removed as users now sign up themselves */}
+        </div>
       </div>
       <div className="mt-6">{renderContent()}</div>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Tambah Pengguna Baru</DialogTitle>
-          <DialogDescription>
-            Isi detail di bawah ini untuk membuat pengguna baru.
-          </DialogDescription>
-        </DialogHeader>
-        <ScrollArea className="max-h-[70vh] pr-6">
-          <UserForm teams={teams ?? []} onSave={() => setIsFormOpen(false)} className="pr-1" />
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+    </>
   );
 }

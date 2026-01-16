@@ -1,24 +1,26 @@
-import type { Metadata } from 'next';
+'use client';
+
+import { usePathname } from 'next/navigation';
 import { Toaster } from '@/components/ui/toaster';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { FirebaseClientProvider } from '@/firebase';
+import { AuthGuard } from '@/components/auth-guard';
 import './globals.css';
-
-export const metadata: Metadata = {
-  title: 'Greenlab CRM',
-  description: 'Modern CRM for Greenlab',
-};
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname();
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <title>Greenlab CRM</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -27,13 +29,19 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <FirebaseClientProvider>
-          <SidebarProvider>
-            <AppSidebar />
-            <main className="flex flex-1 flex-col">
-              <Header />
-              <div className="flex-1 overflow-y-auto">{children}</div>
-            </main>
-          </SidebarProvider>
+          {isAuthPage ? (
+            children
+          ) : (
+            <AuthGuard>
+              <SidebarProvider>
+                <AppSidebar />
+                <main className="flex flex-1 flex-col">
+                  <Header />
+                  <div className="flex-1 overflow-y-auto">{children}</div>
+                </main>
+              </SidebarProvider>
+            </AuthGuard>
+          )}
         </FirebaseClientProvider>
         <Toaster />
       </body>
