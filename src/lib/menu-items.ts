@@ -10,10 +10,16 @@ import {
   View,
 } from 'lucide-react';
 
+export type SubMenuItem = {
+  href: string;
+  title: string;
+};
+
 export type MenuItem = {
   href: string;
   title: string;
   icon: React.ElementType;
+  subItems?: SubMenuItem[];
 };
 
 export const MENU_ITEMS: MenuItem[] = [
@@ -61,5 +67,11 @@ export const MENU_ITEMS: MenuItem[] = [
     href: '/pengaturan',
     title: 'Pengaturan',
     icon: Settings,
+    subItems: [
+        { href: '/pengaturan/integrasi', title: 'Integrasi' },
+        { href: '/pengaturan/users', title: 'Users' },
+        { href: '/pengaturan/teams', title: 'Teams' },
+        { href: '/pengaturan/pipeline', title: 'Pipeline' },
+    ]
   },
 ];
