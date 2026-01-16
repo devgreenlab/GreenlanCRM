@@ -67,6 +67,7 @@ export function UserForm({ user, teams, onSave, className }: UserFormProps) {
     defaultValues: {
       name: user?.name ?? '',
       email: user?.email ?? '',
+      password: '',
       role: user?.role ?? 'SALES',
       teamId: user?.teamId ?? null,
       isActive: user?.isActive ?? true,
