@@ -6,20 +6,20 @@
       "type": "object",
       "description": "Represents a team within the Greenlab CRM.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the team."
-        },
         "name": {
           "type": "string",
           "description": "Name of the team."
         },
-        "description": {
+        "headSalesUid": {
           "type": "string",
-          "description": "Description of the team."
+          "description": "The user ID of the Head of Sales for this team."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
         }
       },
-      "required": ["id", "name"]
+      "required": ["name"]
     },
     "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -27,33 +27,37 @@
       "type": "object",
       "description": "Represents a user of the Greenlab CRM.",
       "properties": {
-        "id": {
+        "name": {
           "type": "string",
-          "description": "Unique identifier for the user."
-        },
-        "teamId": {
-          "type": "string",
-          "description": "Reference to Team. (Relationship: Team 1:N User)"
-        },
-        "firstName": {
-          "type": "string",
-          "description": "First name of the user."
-        },
-        "lastName": {
-          "type": "string",
-          "description": "Last name of the user."
+          "description": "Full name of the user."
         },
         "email": {
           "type": "string",
-          "description": "Email address of the user.",
-          "format": "email"
+          "description": "Email address of the user, used as a unique identifier/username."
         },
         "role": {
           "type": "string",
-          "description": "Role of the user within the CRM (e.g., admin, sales, support)."
+          "description": "Role of the user.",
+          "enum": ["SUPER_ADMIN", "HEAD_SALES", "SALES"]
+        },
+        "teamId": {
+          "type": "string",
+          "description": "The ID of the team this user belongs to."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Whether the user account is active."
+        },
+        "createdAt": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "updatedAt": {
+            "type": "string",
+            "format": "date-time"
         }
       },
-      "required": ["id", "teamId", "firstName", "lastName", "email"]
+      "required": ["name", "email", "role", "isActive"]
     },
     "Contact": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -214,3 +218,5 @@
     "reasoning": "This Firestore structure is designed to support a Greenlab CRM application. The entities cover all core aspects of a CRM: teams, users, contacts, leads, deals, and activities. It also includes settings for pipelines and integrations, and a collection for logs. For a public demo, security rules are temporarily relaxed to allow public read access, but the data model includes 'teamId' on relevant entities to facilitate a straightforward transition to a multi-tenant security model once user authentication is implemented. This structure avoids complex joins by keeping related data in separate top-level collections, which is efficient for Firestore queries."
   }
 }
+
+    

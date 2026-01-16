@@ -1,5 +1,6 @@
 import {
   Calculator,
+  Database,
   FileText,
   LayoutDashboard,
   MessagesSquare,
@@ -73,6 +74,7 @@ export const MENU_ITEMS: MenuItem[] = [
     title: 'Pengaturan',
     icon: Settings,
     subItems: [
+      { href: '/pengaturan/seed', title: 'Seed Data', icon: Database },
       { href: '/pengaturan/integrasi', title: 'Integrasi', icon: Plug },
       { href: '/pengaturan/users', title: 'Users', icon: UserCog },
       { href: '/pengaturan/teams', title: 'Teams', icon: Shield },
@@ -80,3 +82,5 @@ export const MENU_ITEMS: MenuItem[] = [
     ],
   },
 ];
+
+    

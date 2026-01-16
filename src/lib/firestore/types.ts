@@ -3,16 +3,19 @@ import { Timestamp } from 'firebase/firestore';
 export type Team = {
   id: string;
   name: string;
-  description?: string;
+  headSalesUid?: string;
+  createdAt?: Timestamp;
 };
 
 export type UserProfile = {
   id: string;
-  teamId: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   email: string;
-  role: string;
+  role: 'SUPER_ADMIN' | 'HEAD_SALES' | 'SALES';
+  teamId?: string | null;
+  isActive: boolean;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 };
 
 export type Contact = {
@@ -27,32 +30,46 @@ export type Contact = {
 };
 
 export type Lead = {
-  id: string;
+  id:string;
+  ownerUid: string;
   teamId: string;
-  contactId: string;
-  source: string;
-  stage: string;
-  priority?: 'high' | 'medium' | 'low';
+  source: "whatsapp" | "web" | "manual";
+  customerName: string;
+  phone: string;
+  city: string;
+  companyName?: string;
+  needType: "pengujian" | "pelatihan" | "lainnya";
+  status: "new" | "qualified" | "unqualified";
+  lastInboundAt: Timestamp;
+  lastMessagePreview: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 };
 
 export type Deal = {
   id: string;
-  teamId: string;
   leadId: string;
-  name: string;
-  amount: number;
-  stage: 'qualification' | 'proposal' | 'negotiation' | 'closed won' | 'closed lost';
-  closeDate: Timestamp;
+  ownerUid: string;
+  teamId: string;
+  stage: "prospek" | "negosiasi" | "deal" | "produksi" | "selesai" | "lost";
+  valueEstimate: number;
+  probability: number; // 0-1
+  nextActionAt: Timestamp;
+  notes?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 };
 
 export type Activity = {
   id: string;
-  teamId: string;
-  type: 'call' | 'email' | 'meeting' | 'task';
-  subject: string;
-  description?: string;
-  dueDate: Timestamp;
-  contactId?: string;
   leadId?: string;
   dealId?: string;
+  teamId: string;
+  actorUid: string; // userId
+  type: "whatsapp_in" | "whatsapp_out" | "call" | "meeting" | "proposal_sent" | "follow_up" | "presentation";
+  content: string;
+  meta?: Record<string, any>;
+  createdAt: Timestamp;
 };
+
+    
