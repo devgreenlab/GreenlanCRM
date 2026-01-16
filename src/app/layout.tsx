@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { Toaster } from '@/components/ui/toaster';
-import { SidebarProvider } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { FirebaseClientProvider } from '@/firebase';
@@ -35,10 +35,10 @@ export default function RootLayout({
             <AuthGuard>
               <SidebarProvider>
                 <AppSidebar />
-                <main className="flex flex-1 flex-col">
+                <SidebarInset>
                   <Header />
                   <div className="flex-1 overflow-y-auto">{children}</div>
-                </main>
+                </SidebarInset>
               </SidebarProvider>
             </AuthGuard>
           )}
