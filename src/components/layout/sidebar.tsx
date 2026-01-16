@@ -30,7 +30,7 @@ export function AppSidebar() {
           {MENU_ITEMS.map((item) => (
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
-                isActive={pathname === item.href}
+                isActive={pathname.startsWith(item.href)}
                 tooltip={{ children: item.title }}
                 onClick={() => router.push(item.href)}
               >
