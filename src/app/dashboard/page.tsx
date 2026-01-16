@@ -102,7 +102,7 @@ function DashboardKpis() {
   const totalRevenue =
     deals
       ?.filter((deal) => deal.stage === 'selesai') // Assuming 'selesai' is equivalent to 'closed won'
-      .reduce((sum, deal) => sum + (deal.valueEstimate || 0), 0) ?? 0;
+      .reduce((sum, deal) => sum + (deal.amount || 0), 0) ?? 0;
 
   const dealsWon = deals?.filter((deal) => deal.stage === 'selesai').length ?? 0;
   const conversionRate = totalDeals > 0 ? (dealsWon / totalDeals) * 100 : 0;

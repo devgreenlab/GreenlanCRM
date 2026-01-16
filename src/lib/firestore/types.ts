@@ -52,7 +52,7 @@ export type Deal = {
   ownerUid: string;
   teamId: string;
   stage: "prospek" | "negosiasi" | "deal" | "produksi" | "selesai" | "lost";
-  valueEstimate: number;
+  amount: number;
   probability: number; // 0-1
   nextActionAt: Timestamp;
   notes?: string;
