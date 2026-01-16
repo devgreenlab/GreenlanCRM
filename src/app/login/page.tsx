@@ -118,9 +118,6 @@ export default function LoginPage() {
                 </Button>
               </form>
             </Form>
-            <p className="mt-6 text-center text-sm text-muted-foreground">
-              Akun dibuat oleh Super Admin.
-            </p>
           </CardContent>
         </Card>
       </div>
