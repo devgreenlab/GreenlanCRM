@@ -86,7 +86,6 @@ export const MENU_ITEMS: MenuItem[] = [
     title: 'Pengaturan',
     icon: Settings,
     subItems: [
-      { key: 'seed', href: '/pengaturan/seed', title: 'Seed Data', icon: Database },
       { key: 'navigasi', href: '/pengaturan/navigasi', title: 'Navigasi', icon: ListFilter },
       { key: 'integrasi', href: '/pengaturan/integrasi', title: 'Integrasi', icon: Plug },
       { key: 'users', href: '/pengaturan/users', title: 'Users', icon: UserCog },

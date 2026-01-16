@@ -1,79 +1,103 @@
 'use client';
 
 import { useMemo } from 'react';
-import { collection, query, where } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
+import { useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
-import type { Lead } from '@/lib/firestore/types';
+import type { Lead, PipelineSettings } from '@/lib/firestore/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/shared/error-state';
 import { EmptyState } from '@/components/shared/empty-state';
-import { View } from 'lucide-react';
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
-import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { View, GripVertical } from 'lucide-react';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 
-const chartConfig = {
-  count: {
-    label: 'Count',
-    color: 'hsl(var(--chart-1))',
-  },
-} satisfies ChartConfig;
+function LeadCard({ lead }: { lead: Lead }) {
+  return (
+    <Card className="mb-2">
+      <CardContent className="p-3">
+        <div className="flex justify-between items-start">
+            <div>
+                <p className="font-semibold text-sm">{lead.customerName}</p>
+                <p className="text-xs text-muted-foreground">{lead.companyName || lead.phone}</p>
+            </div>
+            <Badge variant="secondary" className="capitalize">{lead.source}</Badge>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function KanbanColumn({ title, leads }: { title: string; leads: Lead[] }) {
+  return (
+    <div className="flex-1 min-w-[280px] bg-muted/50 rounded-lg p-2">
+      <h3 className="font-semibold p-2 mb-2 capitalize">{title} ({leads.length})</h3>
+      <div className="h-full overflow-y-auto">
+        {leads.length > 0 ? (
+          leads.map((lead) => <LeadCard key={lead.id} lead={lead} />)
+        ) : (
+          <div className="p-4 text-center text-sm text-muted-foreground">Tidak ada prospek</div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 
-function StageDistributionChart({ leads }: { leads: Lead[] }) {
-  const stageCounts = useMemo(() => {
-    const counts: { [key: string]: number } = {};
-    for (const lead of leads) {
-      // Assuming lead.status corresponds to stage
-      counts[lead.status] = (counts[lead.status] || 0) + 1;
-    }
-    return Object.entries(counts).map(([stage, count]) => ({ stage, count }));
-  }, [leads]);
-  
-  if (stageCounts.length === 0) {
-      return (
-        <EmptyState
-          icon={View}
-          title="Belum ada prospek"
-          description="Distribusi tahapan prospek akan muncul di sini."
-        />
-      )
+function KanbanBoard({ leads, stages }: { leads: Lead[]; stages: string[] }) {
+  const leadsByStage = useMemo(() => {
+    const initial: Record<string, Lead[]> = {};
+    stages.forEach(stage => {
+        initial[stage] = [];
+    });
+    
+    return leads.reduce((acc, lead) => {
+      const stage = lead.stage || stages[0]; // Default to first stage if not set
+      if (!acc[stage]) {
+        acc[stage] = []; // Handle leads with stages not in settings
+      }
+      acc[stage].push(lead);
+      return acc;
+    }, initial);
+  }, [leads, stages]);
+
+  if (stages.length === 0) {
+    return (
+      <EmptyState
+        icon={View}
+        title="Konfigurasi Pipeline Dibutuhkan"
+        description="Harap atur tahapan prospek di halaman Pengaturan > Pipeline terlebih dahulu."
+      />
+    );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Distribusi Status Prospek</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={stageCounts} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
-              <XAxis dataKey="stage" tickLine={false} axisLine={false} />
-              <YAxis allowDecimals={false} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="count" fill="var(--color-count)" radius={4} />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartContainer>
-      </CardContent>
-    </Card>
+    <ScrollArea className="w-full whitespace-nowrap">
+        <div className="flex gap-4 pb-4">
+            {stages.map((stage) => (
+                <KanbanColumn key={stage} title={stage} leads={leadsByStage[stage] ?? []} />
+            ))}
+        </div>
+        <ScrollBar orientation="horizontal" />
+    </ScrollArea>
   );
 }
 
 
 function PageSkeleton() {
   return (
-    <Card>
-        <CardHeader>
-            <Skeleton className="h-6 w-1/2" />
-        </CardHeader>
-        <CardContent>
-            <Skeleton className="h-[300px] w-full" />
-        </CardContent>
-    </Card>
+    <div className="flex gap-4">
+        {[...Array(4)].map((_, i) => (
+            <div key={i} className="flex-1 min-w-[280px] bg-muted/50 rounded-lg p-2 space-y-4">
+                <Skeleton className="h-6 w-1/2" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+            </div>
+        ))}
+    </div>
   )
 }
 
@@ -93,13 +117,19 @@ export default function ProspekPage() {
     if (userProfile.role === 'SALES') {
       return query(coll, where('ownerUid', '==', userProfile.id));
     }
-    return null; // Return null if not super_admin and no team/owner match
+    return null;
   }, [firestore, userProfile]);
+
+  const pipelineSettingsRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'settings', 'pipeline');
+  }, [firestore]);
   
   const { data: leads, isLoading: isLoadingLeads, error: leadsError } = useCollection<Lead>(leadsQuery);
+  const { data: pipelineSettings, isLoading: isLoadingSettings, error: settingsError } = useDoc<PipelineSettings>(pipelineSettingsRef);
   
-  const isLoading = isProfileLoading || isLoadingLeads;
-  const error = profileError || leadsError;
+  const isLoading = isProfileLoading || isLoadingLeads || isLoadingSettings;
+  const error = profileError || leadsError || settingsError;
   
   const handleRetry = () => window.location.reload();
 
@@ -124,16 +154,16 @@ export default function ProspekPage() {
         />
       );
     }
-    return <StageDistributionChart leads={leads} />;
+    return <KanbanBoard leads={leads} stages={pipelineSettings?.leadStages || []} />;
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
+    <div className="p-4 sm:p-6 lg:p-8 h-full flex flex-col">
       <h1 className="text-3xl font-bold tracking-tight font-headline">Prospek (Leads)</h1>
       <p className="text-muted-foreground mt-2 font-serif">
-        Visualisasikan distribusi prospek Anda berdasarkan tahapan saat ini.
+        Kelola alur prospek Anda menggunakan papan Kanban.
       </p>
-      <div className="mt-8">
+      <div className="mt-8 flex-1">
         {renderContent()}
       </div>
     </div>

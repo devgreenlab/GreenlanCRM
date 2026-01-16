@@ -39,7 +39,7 @@ export type Lead = {
   city: string;
   companyName?: string;
   needType: "pengujian" | "pelatihan" | "lainnya";
-  status: "new" | "qualified" | "unqualified";
+  stage: string;
   lastInboundAt: Timestamp;
   lastMessagePreview: string;
   createdAt: Timestamp;
@@ -80,4 +80,10 @@ export type RoleAccess = {
 export type NavigationSettings = {
   id: string;
   roleAccess: RoleAccess;
+};
+
+export type PipelineSettings = {
+    id: string;
+    leadStages: string[];
+    dealStages: string[];
 };

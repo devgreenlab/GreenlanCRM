@@ -175,14 +175,17 @@
     "PipelineSetting": {
       "title": "Pipeline Setting",
       "type": "object",
-      "description": "Defines the stages and SLAs for the sales pipeline.",
+      "description": "Defines the stages for sales pipelines.",
       "properties": {
-        "stages": {
+        "leadStages": {
           "type": "array",
+          "description": "The stages for the lead pipeline.",
           "items": { "type": "string" }
         },
-        "slaHours": {
-          "type": "object"
+        "dealStages": {
+          "type": "array",
+          "description": "The stages for the deal pipeline.",
+          "items": { "type": "string" }
         }
       }
     }
