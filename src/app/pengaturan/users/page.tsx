@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Users } from 'lucide-react';
+import { PlusCircle, Users } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
@@ -12,6 +12,17 @@ import { ErrorState } from '@/components/shared/error-state';
 import { EmptyState } from '@/components/shared/empty-state';
 import { UsersTable } from '@/components/admin/users/users-table';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { UserForm } from '@/components/admin/users/user-form';
+
 
 function PageSkeleton() {
   return (
@@ -39,6 +50,7 @@ function PageSkeleton() {
 }
 
 export default function UsersPage() {
+  const [isFormOpen, setIsFormOpen] = React.useState(false);
   const firestore = useFirestore();
 
   const usersQuery = useMemoFirebase(
@@ -60,6 +72,9 @@ export default function UsersPage() {
   const error = usersError || teamsError;
 
   const handleRetry = () => window.location.reload();
+  const handleAddNew = () => setIsFormOpen(true);
+  const handleCloseForm = () => setIsFormOpen(false);
+
 
   const renderContent = () => {
     if (isLoading) {
@@ -74,6 +89,12 @@ export default function UsersPage() {
           icon={Users}
           title="Belum ada pengguna terdaftar"
           description="Daftarkan akun pertama melalui halaman signup untuk menjadi Super Admin, yang kemudian dapat mengelola pengguna lain."
+          action={
+            <Button onClick={handleAddNew}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Tambah Pengguna
+            </Button>
+          }
         />
       );
     }
@@ -81,16 +102,32 @@ export default function UsersPage() {
   };
 
   return (
-    <>
+    <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
       <div className="flex items-center justify-between">
-        <div>
-          {/* The title for this section can be here */}
-        </div>
-        <div>
-           {/* Add user button is removed as users now sign up themselves */}
-        </div>
+        <div />
+        <Button onClick={handleAddNew}>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Tambah Pengguna
+        </Button>
       </div>
       <div className="mt-6">{renderContent()}</div>
-    </>
+
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Tambah Pengguna Baru</DialogTitle>
+          <DialogDescription>
+            Akun ini akan dibuat tanpa password. Pengguna harus menggunakan fitur "Lupa Password" untuk login pertama kali.
+          </DialogDescription>
+        </DialogHeader>
+        <ScrollArea className="max-h-[70vh] pr-6">
+          <UserForm
+            user={null}
+            teams={teams ?? []}
+            onSave={handleCloseForm}
+            className="pr-1"
+          />
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
   );
 }
