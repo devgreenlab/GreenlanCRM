@@ -3,10 +3,11 @@
 import * as React from 'react';
 import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { MoreHorizontal } from 'lucide-react';
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore, useUser, useAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
 import type { UserProfile, Team } from '@/lib/firestore/types';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -56,9 +57,11 @@ export function UsersTable({ users, teams, allUsers }: UsersTableProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [isResetDialogOpen, setIsResetDialogOpen] = React.useState(false);
   const [selectedUser, setSelectedUser] = React.useState<UserProfile | null>(null);
 
   const firestore = useFirestore();
+  const auth = useAuth();
   const { toast } = useToast();
   const { user: authUser } = useUser();
 
@@ -79,6 +82,11 @@ export function UsersTable({ users, teams, allUsers }: UsersTableProps) {
   const handleDelete = (user: UserProfile) => {
     setSelectedUser(user);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleResetPassword = (user: UserProfile) => {
+    setSelectedUser(user);
+    setIsResetDialogOpen(true);
   };
 
   const confirmToggleActivate = async () => {
@@ -133,6 +141,27 @@ export function UsersTable({ users, teams, allUsers }: UsersTableProps) {
     }
   };
 
+  const confirmSendResetEmail = async () => {
+    if (!auth || !selectedUser?.email) return;
+
+    try {
+        await sendPasswordResetEmail(auth, selectedUser.email);
+        toast({
+            title: 'Success',
+            description: `Password reset email sent to ${selectedUser.email}.`,
+        });
+    } catch(error: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: error.message || 'Could not send password reset email.',
+        });
+    } finally {
+        setIsResetDialogOpen(false);
+        setSelectedUser(null);
+    }
+  };
+
 
   return (
     <>
@@ -180,6 +209,9 @@ export function UsersTable({ users, teams, allUsers }: UsersTableProps) {
                             <DropdownMenuItem onSelect={() => handleEdit(user)}>Edit</DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => handleToggleActivate(user)}>
                                 {user.isActive ? 'Deactivate' : 'Activate'}
+                            </DropdownMenuItem>
+                             <DropdownMenuItem onSelect={() => handleResetPassword(user)}>
+                                Reset Password
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem 
@@ -250,6 +282,22 @@ export function UsersTable({ users, teams, allUsers }: UsersTableProps) {
             <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={confirmDelete} className={buttonVariants({ variant: "destructive" })}>Delete User Data</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reset Password Alert Dialog */}
+      <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Reset Password?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This will send a password reset link to '{selectedUser?.email}'. They will be able to set a new password. This action cannot be undone.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmSendResetEmail}>Send Link</AlertDialogAction>
             </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
