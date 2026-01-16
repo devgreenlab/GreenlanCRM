@@ -67,7 +67,8 @@ export function AppSidebar() {
                             isActive={pathname === subItem.href}
                             onClick={() => router.push(subItem.href)}
                           >
-                            {subItem.title}
+                            <subItem.icon />
+                            <span>{subItem.title}</span>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
                       ))}

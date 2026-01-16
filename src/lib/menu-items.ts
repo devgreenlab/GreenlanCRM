@@ -3,9 +3,13 @@ import {
   FileText,
   LayoutDashboard,
   MessagesSquare,
+  Network,
+  Plug,
   Receipt,
   Settings,
+  Shield,
   ShoppingCart,
+  UserCog,
   Users,
   View,
 } from 'lucide-react';
@@ -13,6 +17,7 @@ import {
 export type SubMenuItem = {
   href: string;
   title: string;
+  icon: React.ElementType;
 };
 
 export type MenuItem = {
@@ -68,10 +73,10 @@ export const MENU_ITEMS: MenuItem[] = [
     title: 'Pengaturan',
     icon: Settings,
     subItems: [
-        { href: '/pengaturan/integrasi', title: 'Integrasi' },
-        { href: '/pengaturan/users', title: 'Users' },
-        { href: '/pengaturan/teams', title: 'Teams' },
-        { href: '/pengaturan/pipeline', title: 'Pipeline' },
-    ]
+      { href: '/pengaturan/integrasi', title: 'Integrasi', icon: Plug },
+      { href: '/pengaturan/users', title: 'Users', icon: UserCog },
+      { href: '/pengaturan/teams', title: 'Teams', icon: Shield },
+      { href: '/pengaturan/pipeline', title: 'Pipeline', icon: Network },
+    ],
   },
 ];
