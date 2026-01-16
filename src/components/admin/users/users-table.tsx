@@ -49,9 +49,10 @@ import {
 interface UsersTableProps {
   users: UserProfile[];
   teams: Team[];
+  allUsers: UserProfile[];
 }
 
-export function UsersTable({ users, teams }: UsersTableProps) {
+export function UsersTable({ users, teams, allUsers }: UsersTableProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
   const [isDeactivateDialogOpen, setIsDeactivateDialogOpen] = React.useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
@@ -212,6 +213,7 @@ export function UsersTable({ users, teams }: UsersTableProps) {
               <UserForm
                 user={selectedUser}
                 teams={teams}
+                allUsers={allUsers}
                 onSave={() => setIsEditDialogOpen(false)}
                 className="pr-1"
               />

@@ -133,7 +133,7 @@ export default function UsersPage() {
                     <Icon className="h-6 w-6 text-muted-foreground" />
                     <h2 className="text-2xl font-bold tracking-tight font-headline">{config.title}</h2>
                 </div>
-                <UsersTable users={roleUsers} teams={teams ?? []} />
+                <UsersTable users={roleUsers} teams={teams ?? []} allUsers={users ?? []} />
               </div>
             );
           })}
@@ -163,6 +163,7 @@ export default function UsersPage() {
           <UserForm
             user={null}
             teams={teams ?? []}
+            allUsers={users ?? []}
             onSave={handleCloseForm}
             className="pr-1"
           />

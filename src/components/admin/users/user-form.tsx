@@ -10,7 +10,7 @@ import {
   updateDoc,
   setDoc,
 } from 'firebase/firestore';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, getAuth, sendPasswordResetEmail } from 'firebase/auth';
 
 import { useFirestore, useAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -52,11 +52,12 @@ type UserFormValues = z.infer<typeof userFormSchema>;
 interface UserFormProps {
   user?: UserProfile | null;
   teams: Team[];
+  allUsers: UserProfile[];
   onSave: () => void;
   className?: string;
 }
 
-export function UserForm({ user, teams, onSave, className }: UserFormProps) {
+export function UserForm({ user, teams, allUsers, onSave, className }: UserFormProps) {
   const firestore = useFirestore();
   const auth = useAuth();
   const { toast } = useToast();
@@ -80,10 +81,27 @@ export function UserForm({ user, teams, onSave, className }: UserFormProps) {
     if (role === 'SUPER_ADMIN') {
       form.setValue('teamId', null);
     }
-  }, [role, form.setValue]);
+  }, [role, form]);
 
   async function onSubmit(data: UserFormValues) {
     if (!firestore || !auth) return;
+
+    if (data.role === 'SUPER_ADMIN') {
+      const superAdminCount = allUsers.filter(u => u.role === 'SUPER_ADMIN').length;
+      
+      const isCreatingNewSuperAdmin = !user;
+      const isPromotingToSuperAdmin = user && user.role !== 'SUPER_ADMIN';
+
+      if ((isCreatingNewSuperAdmin || isPromotingToSuperAdmin) && superAdminCount >= 3) {
+        toast({
+          variant: 'destructive',
+          title: 'Batas Super Admin Tercapai',
+          description: 'Anda tidak dapat menambahkan lebih dari 3 Super Admin.',
+        });
+        return;
+      }
+    }
+
     setIsLoading(true);
     try {
       if (user) {
