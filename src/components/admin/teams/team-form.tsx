@@ -115,14 +115,17 @@ export function TeamForm({ team, headSalesUsers, onSave, className }: TeamFormPr
           render={({ field }) => (
             <FormItem>
               <FormLabel>Head of Sales</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value ?? ''}>
+              <Select
+                onValueChange={(value) => field.onChange(value === 'none' ? null : value)}
+                value={field.value ?? 'none'}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a Head of Sales" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {headSalesUsers.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.name}
@@ -144,5 +147,3 @@ export function TeamForm({ team, headSalesUsers, onSave, className }: TeamFormPr
     </Form>
   );
 }
-
-    

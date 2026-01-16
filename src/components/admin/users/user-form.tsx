@@ -166,14 +166,17 @@ export function UserForm({ user, teams, onSave, className }: UserFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Team</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value ?? ''}>
+              <Select
+                onValueChange={(value) => field.onChange(value === 'none' ? null : value)}
+                value={field.value ?? 'none'}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a team" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">No Team</SelectItem>
+                  <SelectItem value="none">No Team</SelectItem>
                   {teams.map((team) => (
                     <SelectItem key={team.id} value={team.id}>
                       {team.name}
@@ -212,5 +215,3 @@ export function UserForm({ user, teams, onSave, className }: UserFormProps) {
     </Form>
   );
 }
-
-    
