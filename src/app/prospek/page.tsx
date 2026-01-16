@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
 import type { Lead } from '@/lib/firestore/types';
@@ -12,6 +12,7 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { View } from 'lucide-react';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { useUserProfile } from '@/hooks/use-user-profile';
 
 const chartConfig = {
   count: {
@@ -25,7 +26,8 @@ function StageDistributionChart({ leads }: { leads: Lead[] }) {
   const stageCounts = useMemo(() => {
     const counts: { [key: string]: number } = {};
     for (const lead of leads) {
-      counts[lead.stage] = (counts[lead.stage] || 0) + 1;
+      // Assuming lead.status corresponds to stage
+      counts[lead.status] = (counts[lead.status] || 0) + 1;
     }
     return Object.entries(counts).map(([stage, count]) => ({ stage, count }));
   }, [leads]);
@@ -43,7 +45,7 @@ function StageDistributionChart({ leads }: { leads: Lead[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Distribusi Tahapan Prospek</CardTitle>
+        <CardTitle>Distribusi Status Prospek</CardTitle>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
@@ -77,12 +79,28 @@ function PageSkeleton() {
 
 export default function ProspekPage() {
   const firestore = useFirestore();
-  const leadsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, FIRESTORE_COLLECTIONS.leads)) : null),
-    [firestore]
-  );
+  const { userProfile, isLoading: isProfileLoading, error: profileError } = useUserProfile();
+
+  const leadsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile) return null;
+    const coll = collection(firestore, FIRESTORE_COLLECTIONS.leads);
+    if (userProfile.role === 'SUPER_ADMIN') {
+      return query(coll);
+    }
+    if (userProfile.role === 'HEAD_SALES' && userProfile.teamId) {
+      return query(coll, where('teamId', '==', userProfile.teamId));
+    }
+    if (userProfile.role === 'SALES') {
+      return query(coll, where('ownerUid', '==', userProfile.id));
+    }
+    return null; // Return null if not super_admin and no team/owner match
+  }, [firestore, userProfile]);
   
-  const { data: leads, isLoading, error } = useCollection<Lead>(leadsQuery);
+  const { data: leads, isLoading: isLoadingLeads, error: leadsError } = useCollection<Lead>(leadsQuery);
+  
+  const isLoading = isProfileLoading || isLoadingLeads;
+  const error = profileError || leadsError;
+  
   const handleRetry = () => window.location.reload();
 
   const renderContent = () => {
@@ -97,7 +115,7 @@ export default function ProspekPage() {
         />
       );
     }
-    if (!leads) { // Also covers empty array case for the chart
+    if (!leads || leads.length === 0) { 
       return (
         <EmptyState
           icon={View}

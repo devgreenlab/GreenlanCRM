@@ -4,10 +4,11 @@ import { DollarSign, BadgePercent, Users, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
 import type { Deal, Lead } from '@/lib/firestore/types';
 import { ErrorState } from '@/components/shared/error-state';
+import { useUserProfile } from '@/hooks/use-user-profile';
 
 function PageSkeleton() {
   return (
@@ -47,21 +48,39 @@ function KpiCard({
 
 function DashboardKpis() {
   const firestore = useFirestore();
+  const { userProfile, isLoading: isProfileLoading, error: profileError } = useUserProfile();
 
-  const leadsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, FIRESTORE_COLLECTIONS.leads)) : null),
-    [firestore]
-  );
-  const dealsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, FIRESTORE_COLLECTIONS.deals)) : null),
-    [firestore]
-  );
+  const leadsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile) return null;
+    const coll = collection(firestore, FIRESTORE_COLLECTIONS.leads);
+    if (userProfile.role === 'SUPER_ADMIN') {
+      return query(coll);
+    }
+    if (userProfile.role === 'HEAD_SALES') {
+      return query(coll, where('teamId', '==', userProfile.teamId));
+    }
+    // SALES role
+    return query(coll, where('ownerUid', '==', userProfile.id));
+  }, [firestore, userProfile]);
+
+  const dealsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile) return null;
+    const coll = collection(firestore, FIRESTORE_COLLECTIONS.deals);
+    if (userProfile.role === 'SUPER_ADMIN') {
+      return query(coll);
+    }
+    if (userProfile.role === 'HEAD_SALES') {
+      return query(coll, where('teamId', '==', userProfile.teamId));
+    }
+    // SALES role
+    return query(coll, where('ownerUid', '==', userProfile.id));
+  }, [firestore, userProfile]);
   
   const { data: leads, isLoading: isLoadingLeads, error: leadsError } = useCollection<Lead>(leadsQuery);
   const { data: deals, isLoading: isLoadingDeals, error: dealsError } = useCollection<Deal>(dealsQuery);
 
-  const isLoading = isLoadingLeads || isLoadingDeals;
-  const error = leadsError || dealsError;
+  const isLoading = isProfileLoading || isLoadingLeads || isLoadingDeals;
+  const error = profileError || leadsError || dealsError;
 
   const handleRetry = () => {
     // This is a placeholder for a more robust retry mechanism
@@ -81,10 +100,10 @@ function DashboardKpis() {
 
   const totalRevenue =
     deals
-      ?.filter((deal) => deal.stage === 'closed won')
-      .reduce((sum, deal) => sum + deal.amount, 0) ?? 0;
+      ?.filter((deal) => deal.stage === 'selesai') // Assuming 'selesai' is equivalent to 'closed won'
+      .reduce((sum, deal) => sum + (deal.valueEstimate || 0), 0) ?? 0;
 
-  const dealsWon = deals?.filter((deal) => deal.stage === 'closed won').length ?? 0;
+  const dealsWon = deals?.filter((deal) => deal.stage === 'selesai').length ?? 0;
   const conversionRate = totalDeals > 0 ? (dealsWon / totalDeals) * 100 : 0;
 
   return (

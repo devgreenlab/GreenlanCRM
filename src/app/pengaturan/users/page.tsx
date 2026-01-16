@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { PlusCircle, Users } from 'lucide-react';
+import { PlusCircle, Users, UserCog, Shield, Activity } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
@@ -34,7 +34,7 @@ function PageSkeleton() {
       <Card>
         <CardContent className="p-6">
           <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
+            {[...Array(5)].map((_, i) => (
               <div key={i} className="flex items-center space-x-4">
                 <div className="space-y-2 flex-1">
                   <Skeleton className="h-4 w-full" />
@@ -48,6 +48,12 @@ function PageSkeleton() {
     </div>
   );
 }
+
+const ROLE_CONFIG = {
+    SUPER_ADMIN: { title: 'Super Admins', icon: UserCog },
+    HEAD_SALES: { title: 'Head of Sales', icon: Shield },
+    SALES: { title: 'Sales', icon: Activity },
+};
 
 export default function UsersPage() {
   const [isFormOpen, setIsFormOpen] = React.useState(false);
@@ -67,6 +73,19 @@ export default function UsersPage() {
     [firestore]
   );
   const { data: teams, isLoading: isLoadingTeams, error: teamsError } = useCollection<Team>(teamsQuery);
+  
+  const groupedUsers = React.useMemo(() => {
+    if (!users) return {};
+    return users.reduce((acc, user) => {
+      const role = user.role || 'SALES'; // Default role if not specified
+      if (!acc[role]) {
+        acc[role] = [];
+      }
+      acc[role].push(user);
+      return acc;
+    }, {} as Record<string, UserProfile[]>);
+  }, [users]);
+
 
   const isLoading = isLoadingUsers || isLoadingTeams;
   const error = usersError || teamsError;
@@ -98,7 +117,28 @@ export default function UsersPage() {
         />
       );
     }
-    return <UsersTable users={users} teams={teams ?? []} />;
+    
+    return (
+        <div className="space-y-8">
+          {(Object.keys(ROLE_CONFIG) as Array<keyof typeof ROLE_CONFIG>).map(role => {
+            const roleUsers = groupedUsers[role];
+            if (!roleUsers || roleUsers.length === 0) return null;
+            
+            const config = ROLE_CONFIG[role];
+            const Icon = config.icon;
+
+            return (
+              <div key={role}>
+                <div className="flex items-center gap-3 mb-4">
+                    <Icon className="h-6 w-6 text-muted-foreground" />
+                    <h2 className="text-2xl font-bold tracking-tight font-headline">{config.title}</h2>
+                </div>
+                <UsersTable users={roleUsers} teams={teams ?? []} />
+              </div>
+            );
+          })}
+        </div>
+      );
   };
 
   return (

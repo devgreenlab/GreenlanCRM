@@ -11,19 +11,20 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { MessageCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useUserProfile } from '@/hooks/use-user-profile';
 
 function ChatListItem({ lead }: { lead: Lead }) {
     // In a real app, you'd fetch the contact details
   return (
     <div className="flex items-center gap-4 p-2 hover:bg-muted rounded-lg cursor-pointer">
       <Avatar>
-         <AvatarImage src={`https://i.pravatar.cc/150?u=${lead.contactId}`} />
-        <AvatarFallback>{lead.contactId.charAt(0)}</AvatarFallback>
+         <AvatarImage src={`https://i.pravatar.cc/150?u=${lead.customerName}`} />
+        <AvatarFallback>{lead.customerName.charAt(0)}</AvatarFallback>
       </Avatar>
       <div className="flex-1">
-        <div className="font-semibold">Kontak {lead.contactId.substring(0, 6)}</div>
+        <div className="font-semibold">{lead.customerName}</div>
         <p className="text-sm text-muted-foreground truncate">
-          Klik untuk melihat pesan...
+          {lead.lastMessagePreview || 'Klik untuk melihat pesan...'}
         </p>
       </div>
       <Badge variant="secondary">{lead.source}</Badge>
@@ -49,17 +50,30 @@ function PageSkeleton() {
 
 export default function ObrolanPage() {
   const firestore = useFirestore();
-  const whatsappLeadsQuery = useMemoFirebase(
-    () => (firestore 
-      ? query(
-          collection(firestore, FIRESTORE_COLLECTIONS.leads),
-          where('source', '==', 'whatsapp')
-        )
-      : null),
-    [firestore]
-  );
+  const { userProfile, isLoading: isProfileLoading, error: profileError } = useUserProfile();
+
+  const whatsappLeadsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile) return null;
+    
+    const coll = collection(firestore, FIRESTORE_COLLECTIONS.leads);
+    const filters = [where('source', '==', 'whatsapp')];
+
+    if (userProfile.role === 'HEAD_SALES' && userProfile.teamId) {
+      filters.push(where('teamId', '==', userProfile.teamId));
+    } else if (userProfile.role === 'SALES') {
+      filters.push(where('ownerUid', '==', userProfile.id));
+    } else if (userProfile.role !== 'SUPER_ADMIN') {
+        // A non-super-admin without a team sees nothing.
+        return null; 
+    }
+
+    return query(coll, ...filters);
+  }, [firestore, userProfile]);
   
-  const { data: leads, isLoading, error } = useCollection<Lead>(whatsappLeadsQuery);
+  const { data: leads, isLoading: isLoadingLeads, error: leadsError } = useCollection<Lead>(whatsappLeadsQuery);
+  
+  const isLoading = isProfileLoading || isLoadingLeads;
+  const error = profileError || leadsError;
 
   const handleRetry = () => window.location.reload();
 

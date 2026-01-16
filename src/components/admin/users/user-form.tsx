@@ -10,7 +10,7 @@ import {
   updateDoc,
   setDoc,
 } from 'firebase/firestore';
-import { createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 
 import { useFirestore, useAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -73,24 +73,6 @@ export function UserForm({ user, teams, onSave, className }: UserFormProps) {
       isActive: user?.isActive ?? true,
     },
   });
-  
-  const handlePasswordReset = async () => {
-    if (!user || !auth) return;
-    try {
-      await sendPasswordResetEmail(auth, user.email);
-      toast({
-        title: 'Email Terkirim',
-        description: `Email untuk reset kata sandi telah dikirim ke ${user.email}.`,
-      });
-    } catch (error: any) {
-      console.error('Password reset error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Tidak dapat mengirim email reset kata sandi.',
-      });
-    }
-  };
 
   async function onSubmit(data: UserFormValues) {
     if (!firestore || !auth) return;
@@ -178,17 +160,7 @@ export function UserForm({ user, teams, onSave, className }: UserFormProps) {
             </FormItem>
           )}
         />
-        {user ? (
-            <div className="space-y-2">
-                <FormLabel>Password</FormLabel>
-                <Button type="button" variant="outline" onClick={handlePasswordReset}>
-                    Kirim Email Reset Kata Sandi
-                </Button>
-                <FormDescription>
-                    Pengguna akan menerima email untuk mengatur ulang kata sandi mereka.
-                </FormDescription>
-            </div>
-        ) : (
+        {!user && (
            <FormField
             control={form.control}
             name="password"

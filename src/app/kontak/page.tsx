@@ -1,6 +1,6 @@
 'use client';
 
-import { collection, query } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
 import type { Contact } from '@/lib/firestore/types';
@@ -17,7 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/shared/error-state';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Users } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { useUserProfile } from '@/hooks/use-user-profile';
 
 
 function ContactsTable({ contacts }: { contacts: Contact[] }) {
@@ -80,12 +80,31 @@ function PageSkeleton() {
 
 export default function KontakPage() {
   const firestore = useFirestore();
-  const contactsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, FIRESTORE_COLLECTIONS.contacts)) : null),
-    [firestore]
-  );
+  const { userProfile, isLoading: isProfileLoading, error: profileError } = useUserProfile();
+
+  const contactsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile) return null;
+    const coll = collection(firestore, FIRESTORE_COLLECTIONS.contacts);
+
+    // Super Admins see all contacts
+    if (userProfile.role === 'SUPER_ADMIN') {
+      return query(coll);
+    }
+    
+    // Head of Sales and Sales see contacts from their own team
+    if (userProfile.teamId) {
+        return query(coll, where('teamId', '==', userProfile.teamId));
+    }
+
+    // If user has no team, they see no contacts (unless super admin)
+    return null;
+
+  }, [firestore, userProfile]);
   
-  const { data: contacts, isLoading, error } = useCollection<Contact>(contactsQuery);
+  const { data: contacts, isLoading: isLoadingContacts, error: contactsError } = useCollection<Contact>(contactsQuery);
+
+  const isLoading = isProfileLoading || isLoadingContacts;
+  const error = profileError || contactsError;
 
   const handleRetry = () => window.location.reload();
 
