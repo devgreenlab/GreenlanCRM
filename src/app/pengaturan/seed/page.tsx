@@ -51,8 +51,8 @@ export default function SeedPage() {
         const integrationsRef = doc(firestore, 'integrations', 'settings');
 
         batch.set(pipelineRef, {
-            stages: ["prospek","negosiasi","deal","produksi","selesai","lost"],
-            slaHours: { prospek:24, negosiasi:48, deal:72, produksi:96, selesai:0, lost:0 }
+            leadStages: ['new', 'qualified', 'unqualified'],
+            dealStages: ['prospek', 'negosiasi', 'deal', 'produksi', 'selesai', 'lost']
         }, { merge: true });
 
         batch.set(navRef, {

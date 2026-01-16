@@ -127,11 +127,16 @@ export default function PipelinePage() {
 
   React.useEffect(() => {
     if (pipelineSettings) {
+      // Use the loaded settings
       setLocalSettings(pipelineSettings);
-    } else {
-      setLocalSettings({ leadStages: [], dealStages: [] });
+    } else if (pipelineSettings === null && !isLoading) { 
+      // If loading is finished and settings are null (doc doesn't exist), set defaults
+      setLocalSettings({ 
+        leadStages: ['new', 'qualified', 'unqualified'],
+        dealStages: ['prospek', 'negosiasi', 'deal', 'produksi', 'selesai', 'lost']
+      });
     }
-  }, [pipelineSettings]);
+  }, [pipelineSettings, isLoading]);
 
   const handleSaveChanges = async () => {
     if (!firestore || !settingsRef) return;
@@ -143,11 +148,8 @@ export default function PipelinePage() {
     };
 
     try {
-        if (pipelineSettings) {
-            await updateDoc(settingsRef, dataToSave);
-        } else {
-            await setDoc(settingsRef, dataToSave);
-        }
+        // Use setDoc to handle both creation and updates
+        await setDoc(settingsRef, dataToSave, { merge: true });
         toast({ title: 'Sukses', description: 'Pengaturan pipeline berhasil disimpan.' });
     } catch (e: any) {
         toast({ variant: 'destructive', title: 'Error', description: e.message || 'Gagal menyimpan pengaturan.' });
@@ -170,13 +172,13 @@ export default function PipelinePage() {
         <StageManager
             title="Tahapan Prospek (Lead)"
             description="Atur tahapan untuk papan Kanban di halaman Prospek."
-            stages={localSettings.leadStages || ['new', 'qualified', 'unqualified']}
+            stages={localSettings.leadStages || []}
             onStagesChange={(newStages) => setLocalSettings(prev => ({...prev, leadStages: newStages}))}
         />
         <StageManager
             title="Tahapan Deal"
             description="Atur tahapan untuk pipeline deal (fitur mendatang)."
-            stages={localSettings.dealStages || ['prospek', 'negosiasi', 'deal', 'produksi', 'selesai', 'lost']}
+            stages={localSettings.dealStages || []}
             onStagesChange={(newStages) => setLocalSettings(prev => ({...prev, dealStages: newStages}))}
         />
         <Button onClick={handleSaveChanges} disabled={isSaving}>
