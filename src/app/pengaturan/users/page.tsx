@@ -116,7 +116,7 @@ export default function UsersPage() {
         <DialogHeader>
           <DialogTitle>Tambah Pengguna Baru</DialogTitle>
           <DialogDescription>
-            Akun ini akan dibuat tanpa password. Pengguna harus menggunakan fitur "Lupa Password" untuk login pertama kali.
+            Setelah membuat pengguna, Anda akan otomatis logout. Harap login kembali dengan akun admin Anda.
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[70vh] pr-6">

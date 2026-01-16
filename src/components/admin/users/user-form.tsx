@@ -5,14 +5,14 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
-  addDoc,
-  collection,
   doc,
   serverTimestamp,
   updateDoc,
+  setDoc,
 } from 'firebase/firestore';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 
-import { useFirestore } from '@/firebase';
+import { useFirestore, useAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
 import type { UserProfile, Team } from '@/lib/firestore/types';
@@ -41,6 +41,7 @@ import { Switch } from '@/components/ui/switch';
 const userFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   email: z.string().email('Invalid email address.'),
+  password: z.string().min(6, 'Password must be at least 6 characters.').optional(),
   role: z.enum(['SUPER_ADMIN', 'HEAD_SALES', 'SALES']),
   teamId: z.string().nullable().optional(),
   isActive: z.boolean(),
@@ -57,6 +58,7 @@ interface UserFormProps {
 
 export function UserForm({ user, teams, onSave, className }: UserFormProps) {
   const firestore = useFirestore();
+  const auth = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
 
@@ -72,28 +74,47 @@ export function UserForm({ user, teams, onSave, className }: UserFormProps) {
   });
 
   async function onSubmit(data: UserFormValues) {
-    if (!firestore) return;
+    if (!firestore || !auth) return;
     setIsLoading(true);
     try {
       if (user) {
         // Update existing user
         const userRef = doc(firestore, FIRESTORE_COLLECTIONS.users, user.id);
+        const { password, ...updateData } = data; // Don't save password on update
         await updateDoc(userRef, {
-          ...data,
+          ...updateData,
           updatedAt: serverTimestamp(),
         });
         toast({ title: 'Success', description: 'User updated successfully.' });
+        onSave();
       } else {
         // Create new user
-        const usersRef = collection(firestore, FIRESTORE_COLLECTIONS.users);
-        await addDoc(usersRef, {
-          ...data,
+        if (!data.password) {
+            form.setError('password', { type: 'manual', message: 'Password is required for new users.' });
+            setIsLoading(false);
+            return;
+        }
+        
+        // 1. Create user in Auth
+        const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+        const newUser = userCredential.user;
+
+        // 2. Create user document in Firestore with the UID as document ID
+        const userRef = doc(firestore, FIRESTORE_COLLECTIONS.users, newUser.uid);
+        await setDoc(userRef, {
+          name: data.name,
+          email: data.email,
+          role: data.role,
+          teamId: data.teamId,
+          isActive: data.isActive,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
-        toast({ title: 'Success', description: 'User created successfully.' });
+
+        toast({ title: 'Success', description: 'User created successfully. Please log back in as admin.' });
+        // The onSave() will close the dialog, and AuthGuard will redirect to login.
+        onSave();
       }
-      onSave();
     } catch (error: any) {
       console.error('Error saving user:', error);
       toast({
@@ -129,15 +150,30 @@ export function UserForm({ user, teams, onSave, className }: UserFormProps) {
             <FormItem>
               <FormLabel>Email (Username)</FormLabel>
               <FormControl>
-                <Input placeholder="user@example.com" {...field} />
+                <Input placeholder="user@example.com" {...field} disabled={!!user} />
               </FormControl>
               <FormDescription>
-                This is used as a unique username marker. Can be a fake email.
+                Email cannot be changed after creation.
               </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
+        {!user && (
+           <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                    <Input type="password" placeholder="••••••••" {...field} />
+                </FormControl>
+                <FormMessage />
+                </FormItem>
+            )}
+            />
+        )}
         <FormField
           control={form.control}
           name="role"
