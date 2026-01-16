@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Users } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
@@ -123,5 +123,3 @@ export default function UsersPage() {
     </Dialog>
   );
 }
-
-    
