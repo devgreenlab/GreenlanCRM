@@ -73,7 +73,7 @@ export default function UsersPage() {
         <EmptyState
           icon={Users}
           title="Belum ada pengguna terdaftar"
-          description="Pengguna baru harus mendaftar melalui halaman signup. Anda bisa mengelola peran mereka di sini setelah mereka mendaftar."
+          description="Daftarkan akun pertama melalui halaman signup untuk menjadi Super Admin, yang kemudian dapat mengelola pengguna lain."
         />
       );
     }

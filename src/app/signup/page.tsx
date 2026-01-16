@@ -7,7 +7,7 @@ import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDocs, collection, query, limit } from 'firebase/firestore';
 
 import { useAuth, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
@@ -58,6 +58,9 @@ export default function SignupPage() {
   async function onSubmit(data: SignupFormValues) {
     setIsLoading(true);
     try {
+      if (!firestore) {
+        throw new Error("Firestore is not initialized.");
+      }
       // 1. Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -69,12 +72,19 @@ export default function SignupPage() {
       // 2. Update user profile in Auth
       await updateProfile(user, { displayName: data.name });
 
-      // 3. Create user document in Firestore
+      // 3. Check if this is the first user to determine the role
+      const usersCollectionRef = collection(firestore, FIRESTORE_COLLECTIONS.users);
+      const firstUserQuery = query(usersCollectionRef, limit(1));
+      const userDocs = await getDocs(firstUserQuery);
+      const isFirstUser = userDocs.empty;
+      const role = isFirstUser ? 'SUPER_ADMIN' : 'SALES';
+
+      // 4. Create user document in Firestore
       const userRef = doc(firestore, FIRESTORE_COLLECTIONS.users, user.uid);
       await setDoc(userRef, {
         name: data.name,
         email: data.email,
-        role: 'SALES', // Default role for new sign-ups
+        role: role,
         isActive: true,
         teamId: null,
         createdAt: serverTimestamp(),
@@ -83,7 +93,7 @@ export default function SignupPage() {
       
       toast({
         title: 'Pendaftaran Berhasil',
-        description: 'Selamat datang di Greenlab CRM!',
+        description: isFirstUser ? 'Selamat, akun Super Admin Anda telah dibuat!' : 'Selamat datang di Greenlab CRM!',
       });
       router.push('/dashboard');
 

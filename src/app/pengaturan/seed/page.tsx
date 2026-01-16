@@ -91,46 +91,6 @@ export default function SeedPage() {
         setIsLoading(false);
     }
   };
-  
-  const handleCreateSuperAdmin = async () => {
-    if (!firestore) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Firestore is not initialized.' });
-      return;
-    }
-    setIsLoading(true);
-
-    try {
-      const usersRef = collection(firestore, FIRESTORE_COLLECTIONS.users);
-      const q = query(usersRef, where('email', '==', 'greenlab@gmail.com'));
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
-        toast({ title: 'Info', description: 'Super Admin already exists.' });
-        return;
-      }
-
-      await addDoc(usersRef, {
-        name: 'Greenlab Super Admin',
-        email: 'greenlab@gmail.com',
-        role: 'SUPER_ADMIN',
-        isActive: true,
-        teamId: null,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-
-      toast({ title: 'Success', description: 'Super Admin created successfully.' });
-    } catch (error: any) {
-      console.error('Error creating Super Admin:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Could not create Super Admin.',
-      });
-    } finally {
-        setIsLoading(false);
-    }
-  };
 
   return (
     <Card>
@@ -142,7 +102,7 @@ export default function SeedPage() {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="p-4 border rounded-lg">
-            <h3 className="font-semibold">1. Initial Setup</h3>
+            <h3 className="font-semibold">Initial Setup</h3>
             <p className="text-sm text-muted-foreground mt-1">
                 Creates the default team (MSBD) and necessary settings documents (pipeline, navigation). This only needs to be run once.
             </p>
@@ -150,20 +110,7 @@ export default function SeedPage() {
             {isLoading ? 'Initializing...' : 'Initialize Setup'}
             </Button>
         </div>
-
-        <div className="p-4 border rounded-lg">
-            <h3 className="font-semibold">2. Create Super Admin</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-            Creates the primary 'Super Admin' user with the email 'greenlab@gmail.com'. This user can then manage other users.
-            </p>
-            <Button onClick={handleCreateSuperAdmin} disabled={isLoading} className="mt-4">
-            {isLoading ? 'Creating...' : 'Create Super Admin'}
-            </Button>
-        </div>
-
       </CardContent>
     </Card>
   );
 }
-
-    
