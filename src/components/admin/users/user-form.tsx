@@ -41,7 +41,7 @@ import { Switch } from '@/components/ui/switch';
 const userFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   email: z.string().email('Invalid email address.'),
-  password: z.string().min(6, 'Password must be at least 6 characters.').optional(),
+  password: z.string().min(6, 'Password must be at least 6 characters.').optional().or(z.literal('')),
   role: z.enum(['SUPER_ADMIN', 'HEAD_SALES', 'SALES']),
   teamId: z.string().nullable().optional(),
   isActive: z.boolean(),
@@ -74,6 +74,14 @@ export function UserForm({ user, teams, onSave, className }: UserFormProps) {
     },
   });
 
+  const role = form.watch('role');
+
+  React.useEffect(() => {
+    if (role === 'SUPER_ADMIN') {
+      form.setValue('teamId', null);
+    }
+  }, [role, form.setValue]);
+
   async function onSubmit(data: UserFormValues) {
     if (!firestore || !auth) return;
     setIsLoading(true);
@@ -84,6 +92,8 @@ export function UserForm({ user, teams, onSave, className }: UserFormProps) {
         const { password, ...updateData } = data; // Don't save password on update
         await updateDoc(userRef, {
           ...updateData,
+          // If role is SUPER_ADMIN, ensure teamId is null
+          teamId: data.role === 'SUPER_ADMIN' ? null : data.teamId,
           updatedAt: serverTimestamp(),
         });
         toast({ title: 'Success', description: 'User updated successfully.' });
@@ -106,13 +116,14 @@ export function UserForm({ user, teams, onSave, className }: UserFormProps) {
           name: data.name,
           email: data.email,
           role: data.role,
-          teamId: data.teamId,
+          // If role is SUPER_ADMIN, ensure teamId is null
+          teamId: data.role === 'SUPER_ADMIN' ? null : data.teamId,
           isActive: data.isActive,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
 
-        toast({ title: 'Success', description: 'User created successfully. Please log back in as admin.' });
+        toast({ title: 'Success', description: 'User created successfully. You will be logged out. Please log back in as admin.' });
         // The onSave() will close the dialog, and AuthGuard will redirect to login.
         onSave();
       }
@@ -206,6 +217,7 @@ export function UserForm({ user, teams, onSave, className }: UserFormProps) {
               <Select
                 onValueChange={(value) => field.onChange(value === 'none' ? null : value)}
                 value={field.value ?? 'none'}
+                disabled={role === 'SUPER_ADMIN'}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -221,6 +233,11 @@ export function UserForm({ user, teams, onSave, className }: UserFormProps) {
                   ))}
                 </SelectContent>
               </Select>
+              <FormDescription>
+                {role === 'SUPER_ADMIN'
+                  ? 'Super Admins are independent and do not belong to a team.'
+                  : 'Assign this user to a team.'}
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -233,7 +250,7 @@ export function UserForm({ user, teams, onSave, className }: UserFormProps) {
               <div className="space-y-0.5">
                 <FormLabel>Active Status</FormLabel>
                 <FormDescription>
-                  Inactive users cannot be assigned to new leads or deals.
+                  Inactive users cannot login or be assigned to new leads/deals.
                 </FormDescription>
               </div>
               <FormControl>
