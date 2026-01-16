@@ -10,9 +10,12 @@ import {
   updateDoc,
   setDoc,
 } from 'firebase/firestore';
-import { createUserWithEmailAndPassword, getAuth, sendPasswordResetEmail } from 'firebase/auth';
+import { initializeApp, deleteApp } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 
-import { useFirestore, useAuth } from '@/firebase';
+
+import { useFirestore } from '@/firebase';
+import { firebaseConfig } from '@/firebase/config';
 import { useToast } from '@/hooks/use-toast';
 import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
 import type { UserProfile, Team } from '@/lib/firestore/types';
@@ -59,7 +62,6 @@ interface UserFormProps {
 
 export function UserForm({ user, teams, allUsers, onSave, className }: UserFormProps) {
   const firestore = useFirestore();
-  const auth = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
 
@@ -84,7 +86,7 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
   }, [role, form]);
 
   async function onSubmit(data: UserFormValues) {
-    if (!firestore || !auth) return;
+    if (!firestore) return;
 
     if (data.role === 'SUPER_ADMIN') {
       const superAdminCount = allUsers.filter(u => u.role === 'SUPER_ADMIN').length;
@@ -103,57 +105,74 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
     }
 
     setIsLoading(true);
-    try {
-      if (user) {
-        // Update existing user
+
+    if (user) {
+      // --- UPDATE LOGIC ---
+      try {
         const userRef = doc(firestore, FIRESTORE_COLLECTIONS.users, user.id);
-        const { password, ...updateData } = data; // Don't save password on update
+        const { password, ...updateData } = data;
         await updateDoc(userRef, {
           ...updateData,
-          // If role is SUPER_ADMIN, ensure teamId is null
           teamId: data.role === 'SUPER_ADMIN' ? null : data.teamId,
           updatedAt: serverTimestamp(),
         });
         toast({ title: 'Success', description: 'User updated successfully.' });
         onSave();
-      } else {
-        // Create new user
-        if (!data.password) {
-            form.setError('password', { type: 'manual', message: 'Password is required for new users.' });
-            setIsLoading(false);
-            return;
-        }
+      } catch (error: any) {
+        console.error('Error updating user:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: error.message || 'Could not update user.',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // --- CREATE LOGIC ---
+      if (!data.password) {
+        form.setError('password', { type: 'manual', message: 'Password is required for new users.' });
+        setIsLoading(false);
+        return;
+      }
+
+      const tempAppName = `temp-user-creation-${Date.now()}`;
+      let tempApp = null;
+      try {
+        tempApp = initializeApp(firebaseConfig, tempAppName);
+        const tempAuth = getAuth(tempApp);
         
-        // 1. Create user in Auth
-        const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+        const userCredential = await createUserWithEmailAndPassword(tempAuth, data.email, data.password);
         const newUser = userCredential.user;
 
-        // 2. Create user document in Firestore with the UID as document ID
         const userRef = doc(firestore, FIRESTORE_COLLECTIONS.users, newUser.uid);
         await setDoc(userRef, {
           name: data.name,
           email: data.email,
           role: data.role,
-          // If role is SUPER_ADMIN, ensure teamId is null
           teamId: data.role === 'SUPER_ADMIN' ? null : data.teamId,
           isActive: data.isActive,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
 
-        toast({ title: 'Success', description: 'User created successfully. You will be logged out. Please log back in as admin.' });
-        // The onSave() will close the dialog, and AuthGuard will redirect to login.
+        toast({ title: 'Success', description: 'User created successfully. They can now log in.' });
         onSave();
+      } catch (error: any) {
+        console.error('Error creating user:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error creating user',
+          description: error.code === 'auth/email-already-in-use' 
+            ? 'This email is already in use by another account.'
+            : error.message || 'Could not create user.',
+        });
+      } finally {
+        if (tempApp) {
+          await deleteApp(tempApp);
+        }
+        setIsLoading(false);
       }
-    } catch (error: any) {
-      console.error('Error saving user:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: error.message || 'Could not save user.',
-      });
-    } finally {
-      setIsLoading(false);
     }
   }
 
