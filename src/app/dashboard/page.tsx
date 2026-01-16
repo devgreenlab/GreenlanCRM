@@ -141,13 +141,20 @@ function DashboardKpis() {
 
 
 export default function DashboardPage() {
+  const { userProfile } = useUserProfile();
+
+  const formatRole = (role?: string) => {
+    if (!role) return '';
+    return role.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight font-headline">Dashboard</h1>
           <p className="text-muted-foreground mt-2 font-serif">
-            Selamat datang di dashboard Greenlab CRM Anda.
+            Selamat datang di dashboard Greenlab CRM Anda.{userProfile?.role ? ` Anda login sebagai ${formatRole(userProfile.role)}.` : ''}
           </p>
         </div>
       </div>
