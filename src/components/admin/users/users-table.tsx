@@ -34,6 +34,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { UserForm } from './user-form';
 import {
     AlertDialog,
@@ -162,11 +163,14 @@ export function UsersTable({ users, teams }: UsersTableProps) {
             </DialogDescription>
           </DialogHeader>
           {selectedUser && (
-            <UserForm
-              user={selectedUser}
-              teams={teams}
-              onSave={() => setIsEditDialogOpen(false)}
-            />
+            <ScrollArea className="max-h-[70vh] pr-6">
+              <UserForm
+                user={selectedUser}
+                teams={teams}
+                onSave={() => setIsEditDialogOpen(false)}
+                className="pr-1"
+              />
+            </ScrollArea>
           )}
         </DialogContent>
       </Dialog>
@@ -189,5 +193,3 @@ export function UsersTable({ users, teams }: UsersTableProps) {
     </>
   );
 }
-
-    

@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/shared/error-state';
 import { EmptyState } from '@/components/shared/empty-state';
@@ -118,7 +119,9 @@ export default function UsersPage() {
             Isi detail di bawah ini untuk membuat pengguna baru.
           </DialogDescription>
         </DialogHeader>
-        <UserForm teams={teams ?? []} onSave={() => setIsFormOpen(false)} />
+        <ScrollArea className="max-h-[70vh] pr-6">
+          <UserForm teams={teams ?? []} onSave={() => setIsFormOpen(false)} className="pr-1" />
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
