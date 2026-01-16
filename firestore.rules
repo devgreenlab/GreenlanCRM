@@ -62,10 +62,8 @@ service cloud.firestore {
      * @principle Public read for general information, with writes locked down for security.
      */
     match /teams/{teamId} {
-      allow get, list: if isSignedIn();
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow get, list: if true; // Public read for demo
+      allow create, update, delete: if false;
     }
 
     /**
@@ -91,12 +89,8 @@ service cloud.firestore {
      * @principle All data is partitioned by team. This rule is disabled until the data model is updated.
      */
     match /contacts/{contactId} {
-      // CRITICAL: Cannot implement team-based security. The 'Contact' entity is missing a 'teamId' field.
-      allow get: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId` to Contact documents.
-      allow list: if false; // TODO: Secure list queries require a `teamId` field for `where()` clauses.
-      allow create: if isSignedIn(); // TODO: Change to `isNewResourceInUserTeam()` after adding `teamId`.
-      allow update: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId`.
-      allow delete: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId`.
+      allow get, list: if true; // Public read for demo
+      allow create, update, delete: if false;
     }
 
     /**
@@ -107,12 +101,8 @@ service cloud.firestore {
      * @principle All data is partitioned by team. This rule is disabled until the data model is updated.
      */
     match /leads/{leadId} {
-      // CRITICAL: Cannot implement team-based security. The 'Lead' entity is missing a 'teamId' field.
-      allow get: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId` to Lead documents.
-      allow list: if false; // TODO: Secure list queries require a `teamId` field for `where()` clauses.
-      allow create: if isSignedIn(); // TODO: Change to `isNewResourceInUserTeam()` after adding `teamId`.
-      allow update: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId`.
-      allow delete: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId`.
+      allow get, list: if true; // Public read for demo
+      allow create, update, delete: if false;
     }
 
     /**
@@ -123,12 +113,8 @@ service cloud.firestore {
      * @principle All data is partitioned by team. This rule is disabled until the data model is updated.
      */
     match /deals/{dealId} {
-      // CRITICAL: Cannot implement team-based security. The 'Deal' entity is missing a 'teamId' field.
-      allow get: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId` to Deal documents.
-      allow list: if false; // TODO: Secure list queries require a `teamId` field for `where()` clauses.
-      allow create: if isSignedIn(); // TODO: Change to `isNewResourceInUserTeam()` after adding `teamId`.
-      allow update: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId`.
-      allow delete: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId`.
+      allow get, list: if true; // Public read for demo
+      allow create, update, delete: if false;
     }
 
     /**
@@ -139,12 +125,8 @@ service cloud.firestore {
      * @principle All data is partitioned by team. This rule is disabled until the data model is updated.
      */
     match /activities/{activityId} {
-      // CRITICAL: Cannot implement team-based security. The 'Activity' entity is missing a 'teamId' field.
-      allow get: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId` to Activity documents.
-      allow list: if false; // TODO: Secure list queries require a `teamId` field for `where()` clauses.
-      allow create: if isSignedIn(); // TODO: Change to `isNewResourceInUserTeam()` after adding `teamId`.
-      allow update: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId`.
-      allow delete: if isSignedIn(); // TODO: Change to `isResourceInUserTeam()` after adding `teamId`.
+      allow get, list: if true; // Public read for demo
+      allow create, update, delete: if false;
     }
 
     /**
@@ -155,11 +137,7 @@ service cloud.firestore {
      * @principle Enforces a strict default-deny policy for sensitive administrative data.
      */
     match /settings/{document=**} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow read, write: if false;
     }
 
     /**
@@ -170,11 +148,7 @@ service cloud.firestore {
      * @principle Enforces a strict default-deny policy for sensitive administrative data.
      */
     match /integrations/{document=**} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow read, write: if false;
     }
 
     /**
@@ -185,11 +159,7 @@ service cloud.firestore {
      * @principle Logs should only be written by trusted backend services.
      */
     match /logs/{logId} {
-      allow get: if false;
-      allow list: if false;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow read, write: if false;
     }
   }
 }

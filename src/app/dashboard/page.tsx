@@ -1,79 +1,127 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import { DollarSign, BadgePercent, Users, TrendingUp } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Package } from 'lucide-react';
-import { EmptyState } from '@/components/shared/empty-state';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
+import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
+import type { Deal, Lead } from '@/lib/firestore/types';
 import { ErrorState } from '@/components/shared/error-state';
-
-type PageStatus = 'loading' | 'error' | 'empty' | 'ready';
 
 function PageSkeleton() {
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Skeleton className="h-6 w-1/4" />
-        <Skeleton className="h-4 w-1/2" />
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Skeleton className="h-32 rounded-lg" />
-        <Skeleton className="h-32 rounded-lg" />
-        <Skeleton className="h-32 rounded-lg" />
-        <Skeleton className="h-32 rounded-lg" />
-      </div>
-      <Skeleton className="h-64 rounded-lg" />
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <Skeleton className="h-32 rounded-lg" />
+      <Skeleton className="h-32 rounded-lg" />
+      <Skeleton className="h-32 rounded-lg" />
+      <Skeleton className="h-32 rounded-lg" />
     </div>
   );
 }
 
-export default function DashboardPage() {
-  const [status, setStatus] = useState<PageStatus>('loading');
+function KpiCard({
+  title,
+  value,
+  icon: Icon,
+  description,
+}: {
+  title: string;
+  value: string;
+  icon: React.ElementType;
+  description: string;
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </CardContent>
+    </Card>
+  );
+}
 
-  // Simulate loading data and then randomly showing empty or error state
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setStatus('empty');
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
+function DashboardKpis() {
+  const firestore = useFirestore();
+
+  const leadsQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, FIRESTORE_COLLECTIONS.leads)) : null),
+    [firestore]
+  );
+  const dealsQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, FIRESTORE_COLLECTIONS.deals)) : null),
+    [firestore]
+  );
+  
+  const { data: leads, isLoading: isLoadingLeads, error: leadsError } = useCollection<Lead>(leadsQuery);
+  const { data: deals, isLoading: isLoadingDeals, error: dealsError } = useCollection<Deal>(dealsQuery);
+
+  const isLoading = isLoadingLeads || isLoadingDeals;
+  const error = leadsError || dealsError;
 
   const handleRetry = () => {
-    setStatus('loading');
-    setTimeout(() => {
-      // For demonstration, we'll succeed this time
-      setStatus('empty');
-    }, 1000);
+    // This is a placeholder for a more robust retry mechanism
+    window.location.reload();
   };
 
-  const renderContent = () => {
-    switch (status) {
-      case 'loading':
-        return <PageSkeleton />;
-      case 'error':
-        return (
-          <ErrorState
-            onRetry={handleRetry}
-            message="Gagal memuat data dashboard. Silakan coba lagi."
-          />
-        );
-      case 'empty':
-        return (
-          <EmptyState
-            icon={Package}
-            title="Belum ada data"
-            description="Dashboard Anda masih kosong. Metrik utama akan muncul di sini setelah Anda mulai menggunakan aplikasi."
-            action={<Button onClick={() => setStatus('loading')}>Muat Ulang Data</Button>}
-          />
-        );
-      case 'ready':
-        // This is where the actual dashboard with data would be rendered
-        return <div>Data dashboard sudah siap!</div>;
-      default:
-        return null;
-    }
-  };
+  if (isLoading) {
+    return <PageSkeleton />;
+  }
 
+  if (error) {
+    return <ErrorState onRetry={handleRetry} message="Gagal memuat data KPI." />;
+  }
+
+  const totalLeads = leads?.length ?? 0;
+  const totalDeals = deals?.length ?? 0;
+
+  const totalRevenue =
+    deals
+      ?.filter((deal) => deal.stage === 'closed won')
+      .reduce((sum, deal) => sum + deal.amount, 0) ?? 0;
+
+  const dealsWon = deals?.filter((deal) => deal.stage === 'closed won').length ?? 0;
+  const conversionRate = totalDeals > 0 ? (dealsWon / totalDeals) * 100 : 0;
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <KpiCard
+        title="Total Revenue"
+        value={new Intl.NumberFormat('id-ID', {
+          style: 'currency',
+          currency: 'IDR',
+        }).format(totalRevenue)}
+        icon={DollarSign}
+        description="Total pendapatan dari deal yang dimenangkan."
+      />
+      <KpiCard
+        title="Total Leads"
+        value={`${totalLeads}`}
+        icon={Users}
+        description="Jumlah prospek yang masuk."
+      />
+      <KpiCard
+        title="Total Deals"
+        value={`${totalDeals}`}
+        icon={TrendingUp}
+        description="Jumlah deal yang sedang berjalan."
+      />
+      <KpiCard
+        title="Conversion Rate"
+        value={`${conversionRate.toFixed(1)}%`}
+        icon={BadgePercent}
+        description="Persentase deal yang berhasil dimenangkan."
+      />
+    </div>
+  );
+}
+
+
+export default function DashboardPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
@@ -83,15 +131,10 @@ export default function DashboardPage() {
             Selamat datang di dashboard Greenlab CRM Anda.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setStatus('loading')}>Tampilkan Loading</Button>
-          <Button variant="outline" size="sm" onClick={() => setStatus('empty')}>Tampilkan Kosong</Button>
-          <Button variant="outline" size="sm" onClick={() => setStatus('error')}>Tampilkan Error</Button>
-        </div>
       </div>
 
       <div className="mt-8">
-        {renderContent()}
+        <DashboardKpis />
       </div>
     </div>
   );
