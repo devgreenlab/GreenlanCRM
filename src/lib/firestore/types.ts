@@ -72,4 +72,12 @@ export type Activity = {
   createdAt: Timestamp;
 };
 
-    
+export type RoleAccess = {
+  HEAD_SALES: string[];
+  SALES: string[];
+};
+
+export type NavigationSettings = {
+  id: string;
+  roleAccess: RoleAccess;
+};

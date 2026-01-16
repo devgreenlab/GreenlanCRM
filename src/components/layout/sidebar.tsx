@@ -3,8 +3,9 @@
 import * as React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { ChevronRight, LogOut } from 'lucide-react';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
+import { doc } from 'firebase/firestore';
 
 import {
   Sidebar,
@@ -27,14 +28,65 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
-import { MENU_ITEMS, type SubMenuItem } from '@/lib/menu-items';
+import { MENU_ITEMS, type MenuItem, type SubMenuItem } from '@/lib/menu-items';
 import { Logo } from '@/components/logo';
+import { useUserProfile } from '@/hooks/use-user-profile';
+import type { NavigationSettings } from '@/lib/firestore/types';
+
+
+function SidebarSkeleton() {
+    return (
+        <div className="flex flex-col gap-2">
+            {[...Array(8)].map((_, i) => (
+                <div key={i} className="flex items-center gap-2 p-2">
+                    <Skeleton className="h-6 w-6 rounded" />
+                    <Skeleton className="h-4 w-32 group-data-[collapsible=icon]:hidden" />
+                </div>
+            ))}
+        </div>
+    )
+}
 
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
+  const { userProfile, isLoading: isProfileLoading } = useUserProfile();
+
+  const navSettingsRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'settings', 'navigation') : null),
+    [firestore]
+  );
+  const { data: navSettings, isLoading: isNavLoading } = useDoc<NavigationSettings>(navSettingsRef);
+
+
+  const visibleMenuItems = React.useMemo(() => {
+    if (isProfileLoading || isNavLoading || !userProfile || !navSettings) {
+      return [];
+    }
+
+    if (userProfile.role === 'SUPER_ADMIN') {
+      return MENU_ITEMS;
+    }
+
+    const userPermissions = navSettings.roleAccess[userProfile.role] || [];
+    
+    const filterItems = (items: (MenuItem | SubMenuItem)[]) => {
+        return items.filter(item => userPermissions.includes(item.key))
+          .map(item => {
+              if ('subItems' in item && item.subItems) {
+                  return { ...item, subItems: filterItems(item.subItems) as SubMenuItem[] };
+              }
+              return item;
+          }).filter(item => !item.subItems || item.subItems.length > 0);
+    };
+
+    return filterItems(MENU_ITEMS) as MenuItem[];
+
+  }, [userProfile, navSettings, isProfileLoading, isNavLoading]);
+  
 
   const handleLogout = async () => {
     try {
@@ -58,62 +110,66 @@ export function AppSidebar() {
     return subItems.some((item) => pathname.startsWith(item.href));
   };
 
+  const isLoading = isUserLoading || isProfileLoading || isNavLoading;
+
   return (
     <Sidebar variant="sidebar" collapsible="icon">
       <SidebarHeader>
         <Logo />
       </SidebarHeader>
       <SidebarContent>
-        <SidebarMenu>
-          {MENU_ITEMS.map((item) =>
-            item.subItems ? (
-              <SidebarMenuItem key={item.href}>
-                <Collapsible defaultOpen={isSubItemActive(item.subItems)}>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton
-                      isActive={isSubItemActive(item.subItems)}
-                      tooltip={{ children: item.title }}
-                    >
-                      <div className="flex w-full items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <item.icon />
-                          <span>{item.title}</span>
+        { isLoading ? <SidebarSkeleton /> : (
+            <SidebarMenu>
+            {visibleMenuItems.map((item) =>
+                item.subItems ? (
+                <SidebarMenuItem key={item.key}>
+                    <Collapsible defaultOpen={isSubItemActive(item.subItems)}>
+                    <CollapsibleTrigger asChild>
+                        <SidebarMenuButton
+                        isActive={isSubItemActive(item.subItems)}
+                        tooltip={{ children: item.title }}
+                        >
+                        <div className="flex w-full items-center justify-between">
+                            <div className="flex items-center gap-2">
+                            <item.icon />
+                            <span>{item.title}</span>
+                            </div>
+                            <ChevronRight className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-90" />
                         </div>
-                        <ChevronRight className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-90" />
-                      </div>
+                        </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                        <SidebarMenuSub>
+                        {item.subItems.map((subItem) => (
+                            <SidebarMenuSubItem key={subItem.key}>
+                            <SidebarMenuSubButton
+                                isActive={pathname === subItem.href}
+                                onClick={() => router.push(subItem.href)}
+                            >
+                                <subItem.icon />
+                                <span>{subItem.title}</span>
+                            </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                        ))}
+                        </SidebarMenuSub>
+                    </CollapsibleContent>
+                    </Collapsible>
+                </SidebarMenuItem>
+                ) : (
+                <SidebarMenuItem key={item.key}>
+                    <SidebarMenuButton
+                    isActive={pathname.startsWith(item.href)}
+                    tooltip={{ children: item.title }}
+                    onClick={() => router.push(item.href)}
+                    >
+                    <item.icon />
+                    <span>{item.title}</span>
                     </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      {item.subItems.map((subItem) => (
-                        <SidebarMenuSubItem key={subItem.href}>
-                          <SidebarMenuSubButton
-                            isActive={pathname === subItem.href}
-                            onClick={() => router.push(subItem.href)}
-                          >
-                            <subItem.icon />
-                            <span>{subItem.title}</span>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      ))}
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </Collapsible>
-              </SidebarMenuItem>
-            ) : (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton
-                  isActive={pathname.startsWith(item.href)}
-                  tooltip={{ children: item.title }}
-                  onClick={() => router.push(item.href)}
-                >
-                  <item.icon />
-                  <span>{item.title}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            )
-          )}
-        </SidebarMenu>
+                </SidebarMenuItem>
+                )
+            )}
+            </SidebarMenu>
+        )}
       </SidebarContent>
       <SidebarFooter>
         { isUserLoading ? (
