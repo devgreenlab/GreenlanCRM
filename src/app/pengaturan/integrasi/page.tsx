@@ -8,6 +8,7 @@ import { useUserProfile } from '@/hooks/use-user-profile';
 import { useToast } from '@/hooks/use-toast';
 import type { IntegrationSettings } from '@/lib/firestore/types';
 import { format } from 'date-fns';
+import { useUser } from '@/firebase';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -80,6 +81,7 @@ function PageSkeleton() {
 
 export default function IntegrasiPage() {
   const { userProfile, isLoading: isProfileLoading } = useUserProfile();
+  const { user: authUser } = useUser();
   const { toast } = useToast();
   
   const [settings, setSettings] = React.useState<Partial<IntegrationSettings>>({});
@@ -100,10 +102,18 @@ export default function IntegrasiPage() {
     },
   });
 
+  const getAuthHeader = async () => {
+    if (!authUser) return {};
+    const token = await authUser.getIdToken();
+    return { 'Authorization': `Bearer ${token}` };
+  };
+
   const fetchSettings = React.useCallback(async () => {
+    if (!authUser) return;
     setIsFetching(true);
     try {
-        const response = await fetch('/api/admin/integrations/settings');
+        const headers = await getAuthHeader();
+        const response = await fetch('/api/admin/integrations/settings', { headers });
         if (!response.ok) throw new Error('Failed to fetch settings');
         const data = await response.json();
         setSettings(data);
@@ -118,21 +128,22 @@ export default function IntegrasiPage() {
     } finally {
         setIsFetching(false);
     }
-  }, [form, toast]);
+  }, [form, toast, authUser]);
 
   React.useEffect(() => {
-    if (userProfile?.role === 'SUPER_ADMIN') {
+    if (userProfile?.role === 'SUPER_ADMIN' && authUser) {
         fetchSettings();
     }
-  }, [userProfile, fetchSettings]);
+  }, [userProfile, authUser, fetchSettings]);
 
 
   async function onSaveSettings(data: z.infer<typeof settingsFormSchema>) {
     setIsSaving(true);
     try {
+        const headers = await getAuthHeader();
         const response = await fetch('/api/admin/integrations/settings', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...headers },
             body: JSON.stringify(data),
         });
         if (!response.ok) {
@@ -155,9 +166,10 @@ export default function IntegrasiPage() {
     }
     setIsSettingKey(true);
     try {
+        const headers = await getAuthHeader();
         const response = await fetch('/api/admin/integrations/waha-key', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', ...headers },
             body: JSON.stringify({ apiKey: wahaApiKey }),
         });
          if (!response.ok) {
@@ -176,7 +188,8 @@ export default function IntegrasiPage() {
 
   async function onClearWahaKey() {
       try {
-        const response = await fetch('/api/admin/integrations/waha-key', { method: 'DELETE' });
+        const headers = await getAuthHeader();
+        const response = await fetch('/api/admin/integrations/waha-key', { method: 'DELETE', headers });
         if (!response.ok) {
             const err = await response.json();
             throw new Error(err.error || 'Failed to clear API key.');
@@ -191,7 +204,8 @@ export default function IntegrasiPage() {
   async function onTestWaha() {
     setIsTesting(true);
     try {
-        const response = await fetch('/api/admin/integrations/test-waha', { method: 'POST' });
+        const headers = await getAuthHeader();
+        const response = await fetch('/api/admin/integrations/test-waha', { method: 'POST', headers });
         const result = await response.json();
         if (!response.ok || !result.success) {
             throw new Error(result.error || 'Test failed.');
