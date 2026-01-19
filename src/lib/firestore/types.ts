@@ -88,3 +88,34 @@ export type PipelineSettings = {
     leadStages: string[];
     dealStages: string[];
 };
+
+export type IntegrationSettings = {
+    id: string;
+    waha: {
+        baseUrl: string;
+        session: string;
+    };
+    n8n: {
+        outboundWebhookUrl: string;
+    };
+    secrets: {
+        crmWebhookSecret?: string;
+        wahaApiKeyLast4?: string;
+        wahaApiKeyRotatedAt?: Timestamp;
+    };
+    flags: {
+        inboundEnabled: boolean;
+        outboundEnabled: boolean;
+    };
+    updatedAt: Timestamp;
+    updatedBy: string; // UID
+};
+
+export type AuditLog = {
+    id: string;
+    action: 'SAVE_INTEGRATION_SETTINGS' | 'SET_WAHA_KEY' | 'CLEAR_WAHA_KEY' | 'TEST_WAHA_CONNECTION';
+    byUid: string;
+    at: Timestamp;
+    result: 'SUCCESS' | 'FAILURE';
+    message?: string;
+};

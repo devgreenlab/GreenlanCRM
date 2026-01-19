@@ -2,16 +2,53 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // For internal prototyping, allow reads and writes for any authenticated user (including anonymous).
-    // This rule is NOT secure for production.
+    
     function isSignedIn() {
       return request.auth != null;
     }
 
+    function isSuperAdmin(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data.role == 'SUPER_ADMIN';
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      // Only super admins can write to the users collection
+      allow write: if isSuperAdmin(request.auth.uid);
+    }
+
+    match /teams/{teamId} {
+      // Allow read for any signed-in user
+      allow read: if isSignedIn();
+      // Allow write only for Super Admins
+      allow write: if isSuperAdmin(request.auth.uid);
+    }
+    
+    match /settings/{docId} {
+        // Only Super Admins can read or write any document in the settings collection
+        allow read, write: if isSuperAdmin(request.auth.uid);
+    }
+
+    match /integrations/settings {
+        // Only Super Admins can read or write integration settings
+        allow read, write: if isSuperAdmin(request.auth.uid);
+    }
+
+    match /integrations_secrets/{docId} {
+        // No client can ever read or write secrets. This must be done via a server endpoint.
+        allow read, write: if false;
+    }
+
+    match /audit_logs/{logId} {
+        // Only Super Admins can read logs
+        allow read: if isSuperAdmin(request.auth.uid);
+        // No one can write logs from the client. This must be done via a server endpoint.
+        allow write: if false;
+    }
+    
+    // Fallback for other collections - needs refinement based on app logic
     match /{document=**} {
       allow read, write: if isSignedIn();
     }
   }
 }
-
-    

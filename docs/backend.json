@@ -129,28 +129,53 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "IntegrationSetting",
       "type": "object",
-      "description": "Represents an integration setting for external services.",
+      "description": "Stores the configuration for external integrations like WAHA and n8n.",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the integration setting." },
-        "integrationType": { "type": "string", "description": "Type of integration (e.g., WhatsApp, Email, Calendar)." },
-        "settingKey": { "type": "string", "description": "Key for the specific setting." },
-        "settingValue": { "type": "string", "description": "Value for the specific setting." }
-      },
-      "required": ["id", "integrationType", "settingKey", "settingValue"]
+        "waha": {
+          "type": "object",
+          "properties": {
+            "baseUrl": { "type": "string", "format": "uri" },
+            "session": { "type": "string" }
+          }
+        },
+        "n8n": {
+          "type": "object",
+          "properties": {
+            "outboundWebhookUrl": { "type": "string", "format": "uri" }
+          }
+        },
+        "secrets": {
+          "type": "object",
+          "properties": {
+            "crmWebhookSecret": { "type": "string" },
+            "wahaApiKeyLast4": { "type": "string" },
+            "wahaApiKeyRotatedAt": { "type": "string", "format": "date-time" }
+          }
+        },
+        "flags": {
+          "type": "object",
+          "properties": {
+            "inboundEnabled": { "type": "boolean" },
+            "outboundEnabled": { "type": "boolean" }
+          }
+        },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedBy": { "type": "string", "description": "UID of the user who last updated the settings." }
+      }
     },
-    "Log": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Log",
-      "type": "object",
-      "description": "Represents a log entry for auditing or debugging purposes.",
-      "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the log entry." },
-        "timestamp": { "type": "string", "description": "Timestamp of when the log entry was created.", "format": "date-time" },
-        "level": { "type": "string", "description": "Log level (e.g., INFO, WARN, ERROR)." },
-        "message": { "type": "string", "description": "Log message." },
-        "userId": { "type": "string", "description": "Reference to User. (Relationship: User 1:N Log) User associated with the log entry." }
-      },
-      "required": ["id", "timestamp", "level", "message"]
+    "AuditLog": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Audit Log",
+        "type": "object",
+        "description": "Records important actions performed by users, especially admins.",
+        "properties": {
+            "action": { "type": "string", "enum": ["SAVE_INTEGRATION_SETTINGS", "SET_WAHA_KEY", "CLEAR_WAHA_KEY", "TEST_WAHA_CONNECTION"] },
+            "byUid": { "type": "string", "description": "The UID of the user who performed the action." },
+            "at": { "type": "string", "format": "date-time" },
+            "result": { "type": "string", "enum": ["SUCCESS", "FAILURE"] },
+            "message": { "type": "string", "description": "A descriptive message about the event." }
+        },
+        "required": ["action", "byUid", "at", "result"]
     },
      "NavigationSetting": {
       "title": "Navigation Setting",
@@ -231,11 +256,11 @@
       },
       {
         "path": "/integrations/settings",
-        "definition": { "schema": { "$ref": "#/entities/IntegrationSetting" }, "description": "Stores integration settings." }
+        "definition": { "schema": { "$ref": "#/entities/IntegrationSetting" }, "description": "Stores public integration settings and metadata about secrets." }
       },
       {
-        "path": "/logs/{logId}",
-        "definition": { "schema": { "$ref": "#/entities/Log" }, "description": "Stores log entries." }
+        "path": "/audit_logs/{logId}",
+        "definition": { "schema": { "$ref": "#/entities/AuditLog" }, "description": "Stores audit logs for important admin actions." }
       }
     ],
     "reasoning": "This Firestore structure is designed to support a Greenlab CRM application. The entities cover all core aspects of a CRM: teams, users, contacts, leads, deals, and activities. It also includes settings for pipelines and integrations, and a collection for logs. For a public demo, security rules are temporarily relaxed to allow public read access, but the data model includes 'teamId' on relevant entities to facilitate a straightforward transition to a multi-tenant security model once user authentication is implemented. This structure avoids complex joins by keeping related data in separate top-level collections, which is efficient for Firestore queries."
