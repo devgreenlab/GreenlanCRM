@@ -31,6 +31,7 @@ function PageSkeleton() {
               <div className="flex gap-8">
                 <Skeleton className="h-6 w-16" />
                 <Skeleton className="h-6 w-16" />
+                <Skeleton className="h-6 w-16" />
               </div>
             </div>
             <div className="pl-6 mt-4 space-y-4">
@@ -39,6 +40,7 @@ function PageSkeleton() {
                 <div className="flex gap-8">
                   <Skeleton className="h-5 w-16" />
                   <Skeleton className="h-5 w-16" />
+                   <Skeleton className="h-5 w-16" />
                 </div>
               </div>
             </div>
@@ -66,11 +68,19 @@ export default function NavigasiPage() {
 
   React.useEffect(() => {
     if (navSettings) {
-      setRoleAccess(navSettings.roleAccess);
+        setRoleAccess({
+            SUPER_ADMIN: navSettings.roleAccess?.SUPER_ADMIN ?? [],
+            HEAD_SALES: navSettings.roleAccess?.HEAD_SALES ?? [],
+            SALES: navSettings.roleAccess?.SALES ?? [],
+        });
     }
   }, [navSettings]);
 
   const handleToggle = (role: keyof RoleAccess, key: string, isSubItem: boolean) => {
+    if (role === 'SUPER_ADMIN') {
+        return; // Super Admin permissions cannot be changed
+    }
+
     setRoleAccess((prev) => {
       if (!prev) return null;
       const newAccess = { ...prev };
@@ -148,13 +158,14 @@ export default function NavigasiPage() {
       <CardHeader>
         <CardTitle>Pengaturan Navigasi</CardTitle>
         <CardDescription>
-          Centang item menu mana yang dapat dilihat oleh setiap peran. Super Admin selalu memiliki akses ke semua menu.
+          Centang item menu mana yang dapat dilihat oleh setiap peran. Super Admin selalu memiliki akses ke semua menu, dan pengaturannya tidak dapat diubah.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
           <div className="flex items-center px-4 font-semibold text-muted-foreground">
             <div className="flex-1">Item Menu</div>
+            <div className="w-24 text-center">Super Admin</div>
             <div className="w-24 text-center">Head Sales</div>
             <div className="w-24 text-center">Sales</div>
           </div>
@@ -163,6 +174,14 @@ export default function NavigasiPage() {
             <div key={item.key}>
               <div className="flex items-center px-4 py-2 hover:bg-muted/50 rounded-md">
                 <div className="flex-1 font-medium">{item.title}</div>
+                <div className="w-24 flex justify-center">
+                    <Checkbox
+                        checked={true}
+                        disabled={true}
+                        aria-label={`Toggle ${item.title} for Super Admin`}
+                        id={`sa-main-${item.key}`}
+                    />
+                </div>
                 <div className="w-24 flex justify-center">
                   <Checkbox
                     checked={roleAccess.HEAD_SALES.includes(item.key)}
@@ -185,6 +204,14 @@ export default function NavigasiPage() {
                   {item.subItems.map((subItem) => (
                     <div key={subItem.key} className="flex items-center pr-4 py-2 hover:bg-muted/50 rounded-md">
                       <div className="flex-1 text-muted-foreground">{subItem.title}</div>
+                      <div className="w-24 flex justify-center">
+                        <Checkbox
+                            checked={true}
+                            disabled={true}
+                            aria-label={`Toggle ${subItem.title} for Super Admin`}
+                            id={`sa-sub-${subItem.key}`}
+                        />
+                      </div>
                       <div className="w-24 flex justify-center">
                         <Checkbox
                           checked={roleAccess.HEAD_SALES.includes(subItem.key)}

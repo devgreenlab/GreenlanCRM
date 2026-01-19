@@ -73,6 +73,7 @@ export type Activity = {
 };
 
 export type RoleAccess = {
+  SUPER_ADMIN: string[];
   HEAD_SALES: string[];
   SALES: string[];
 };
