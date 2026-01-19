@@ -23,6 +23,8 @@
         "role": { "type": "string", "description": "Role of the user.", "enum": ["SUPER_ADMIN", "HEAD_SALES", "SALES"] },
         "teamId": { "type": "string", "description": "The ID of the team this user belongs to." },
         "isActive": { "type": "boolean", "description": "Whether the user account is active." },
+        "wahaSession": { "type": "string", "description": "The user's dedicated WAHA session name (for Sales roles)." },
+        "waNumber": { "type": "string", "description": "The user's WhatsApp number for display purposes." },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
@@ -51,15 +53,20 @@
       "type": "object",
       "description": "Represents a lead in the CRM.",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the lead." },
-        "teamId": { "type": "string", "description": "The ID of the team this lead belongs to." },
-        "contactId": { "type": "string", "description": "Reference to Contact. (Relationship: Contact 1:N Lead)" },
-        "source": { "type": "string", "description": "Source of the lead (e.g., website, referral, advertisement)." },
-        "stage": { "type": "string", "description": "Current stage of the lead in the sales pipeline (e.g., prospect, qualified, demo, proposal, closed)." },
-        "priority": { "type": "string", "description": "Priority of the lead (e.g. high, medium, low)." },
-        "lastOutboundAt": { "type": "string", "format": "date-time" }
+        "id": { "type": "string" },
+        "ownerUid": { "type": "string" },
+        "teamId": { "type": "string" },
+        "source": { "type": "string", "enum": ["whatsapp", "web", "manual"] },
+        "customerName": { "type": "string" },
+        "phone": { "type": "string" },
+        "chatId": { "type": "string" },
+        "wahaSession": { "type": "string" },
+        "stage": { "type": "string" },
+        "lastInboundAt": { "type": "string", "format": "date-time" },
+        "lastOutboundAt": { "type": "string", "format": "date-time" },
+        "lastMessagePreview": { "type": "string" }
       },
-      "required": ["id", "teamId", "contactId", "source", "stage"]
+      "required": ["id", "ownerUid", "teamId", "source", "customerName", "phone", "chatId", "wahaSession", "stage"]
     },
     "Deal": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -83,17 +90,14 @@
       "type": "object",
       "description": "Represents an activity related to a contact, lead, or deal.",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the activity." },
-        "teamId": { "type": "string", "description": "The ID of the team this activity belongs to." },
-        "type": { "type": "string", "description": "Type of activity (e.g., call, email, meeting, task)." },
-        "subject": { "type": "string", "description": "Subject of the activity." },
-        "description": { "type": "string", "description": "Description of the activity." },
-        "dueDate": { "type": "string", "description": "Due date of the activity.", "format": "date-time" },
-        "contactId": { "type": "string", "description": "Reference to Contact. (Relationship: Contact 1:N Activity)" },
-        "leadId": { "type": "string", "description": "Reference to Lead. (Relationship: Lead 1:N Activity)" },
-        "dealId": { "type": "string", "description": "Reference to Deal. (Relationship: Deal 1:N Activity)" }
+        "id": { "type": "string" },
+        "leadId": { "type": "string" },
+        "teamId": { "type": "string" },
+        "actorUid": { "type": "string" },
+        "type": { "type": "string", "enum": ["whatsapp_in", "whatsapp_out", "call", "meeting"] },
+        "content": { "type": "string" }
       },
-      "required": ["id", "teamId", "type", "subject", "dueDate"]
+      "required": ["id", "teamId", "actorUid", "type", "content"]
     },
     "IntegrationSetting": {
       "title": "Integration Setting",
@@ -110,6 +114,7 @@
         "n8n": {
           "type": "object",
           "properties": {
+            "inboundWebhookUrl": { "type": "string", "format": "uri" },
             "outboundWebhookUrl": { "type": "string", "format": "uri" }
           }
         },
@@ -154,6 +159,7 @@
         "roleAccess": {
           "type": "object",
           "properties": {
+            "SUPER_ADMIN": { "type": "array", "items": { "type": "string" } },
             "HEAD_SALES": { "type": "array", "items": { "type": "string" } },
             "SALES": { "type": "array", "items": { "type": "string" } }
           }

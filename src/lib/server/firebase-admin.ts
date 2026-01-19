@@ -9,7 +9,7 @@ function getAdminApp(): App {
     return getApp();
   }
 
-  // In a real Google Cloud environment (like Cloud Functions or App Engine),
+  // In a Google Cloud environment (like Cloud Functions or App Engine),
   // `admin.initializeApp()` without arguments will use the service account automatically.
   // For local development, you need to set the GOOGLE_APPLICATION_CREDENTIALS environment variable.
   return initializeApp();

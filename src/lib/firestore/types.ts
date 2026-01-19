@@ -45,8 +45,8 @@ export type Lead = {
   lastInboundAt?: Timestamp;
   lastOutboundAt?: Timestamp;
   lastMessagePreview?: string;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
   chatId: string; // The customer's whatsapp ID, e.g., 628...
   wahaSession: string; // The WAHA session of the sales owner
 };
@@ -61,8 +61,8 @@ export type Deal = {
   probability: number; // 0-1
   nextActionAt: Timestamp;
   notes?: string;
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 };
 
 export type Activity = {
@@ -106,7 +106,7 @@ export type IntegrationSettings = {
     };
     // Public metadata about secrets, the actual secrets are stored server-side
     secrets: {
-        crmWebhookSecret?: string; // This is a shared secret, ok to be here if that's the design
+        crmWebhookSecret?: string;
         wahaApiKeyLast4?: string;
         wahaApiKeyRotatedAt?: Timestamp;
     };
@@ -120,9 +120,9 @@ export type IntegrationSettings = {
 
 export type AuditLog = {
     id: string;
-    action: 'SAVE_INTEGRATION_SETTINGS' | 'SET_WAHA_KEY' | 'CLEAR_WAHA_KEY' | 'TEST_WAHA_CONNECTION' | 'SEND_WA_ATTEMPT' | 'SEND_WA_SUCCESS' | 'SEND_WA_FAIL' | 'TEST_SUMOPOD_SUCCESS' | 'TEST_SUMOPOD_FAIL' | 'SET_SUMOPOD_KEY' | 'CLEAR_SUMOPOD_KEY';
+    action: 'SAVE_INTEGRATION_SETTINGS' | 'SET_WAHA_KEY' | 'CLEAR_WAHA_KEY' | 'TEST_WAHA_CONNECTION' | 'SEND_WA_ATTEMPT' | 'SEND_WA_SUCCESS' | 'SEND_WA_FAIL';
     byUid: string;
     at: Timestamp;
-    result: 'SUCCESS' | 'FAILURE' | 'FAIL';
+    result: 'SUCCESS' | 'FAILURE';
     message?: string;
 };

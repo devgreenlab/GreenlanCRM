@@ -151,24 +151,23 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
         return;
       }
 
+      // This temporary Firebase app instance is used for user creation.
+      // It's a workaround to create a user without signing out the current admin.
       const tempAppName = `temp-user-creation-${Date.now()}`;
-      let tempApp = null;
+      const tempApp = initializeApp(firebaseConfig, tempAppName);
+      const tempAuth = getAuth(tempApp);
+      
       try {
-        tempApp = initializeApp(firebaseConfig, tempAppName);
-        const tempAuth = getAuth(tempApp);
-        
         const userCredential = await createUserWithEmailAndPassword(tempAuth, data.email, data.password);
         const newUser = userCredential.user;
 
         const userRef = doc(firestore, FIRESTORE_COLLECTIONS.users, newUser.uid);
+        const { password, ...userData } = data;
+
         await setDoc(userRef, {
-          name: data.name,
-          email: data.email,
-          role: data.role,
+          ...userData,
           teamId: data.role === 'SUPER_ADMIN' ? null : data.teamId,
           wahaSession: data.role === 'SALES' ? data.wahaSession : null,
-          waNumber: data.waNumber,
-          isActive: data.isActive,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -185,9 +184,7 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
             : error.message || 'Could not create user.',
         });
       } finally {
-        if (tempApp) {
-          await deleteApp(tempApp);
-        }
+        await deleteApp(tempApp);
         setIsLoading(false);
       }
     }

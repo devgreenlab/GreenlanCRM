@@ -39,6 +39,7 @@ const settingsFormSchema = z.object({
     session: z.string().min(1, 'Session name is required'),
   }),
   n8n: z.object({
+    inboundWebhookUrl: z.string().url('Must be a valid URL'),
     outboundWebhookUrl: z.string().url('Must be a valid URL'),
   }),
   secrets: z.object({
@@ -49,6 +50,7 @@ const settingsFormSchema = z.object({
     outboundEnabled: z.boolean(),
   }),
 });
+
 
 const wahaKeySchema = z.object({
   apiKey: z.string().min(10, 'A valid API key is required'),
@@ -96,14 +98,14 @@ export default function IntegrasiPage() {
     resolver: zodResolver(settingsFormSchema),
     defaultValues: {
         waha: { baseUrl: '', session: 'default' },
-        n8n: { outboundWebhookUrl: '' },
+        n8n: { inboundWebhookUrl: '', outboundWebhookUrl: '' },
         secrets: { crmWebhookSecret: '' },
         flags: { inboundEnabled: false, outboundEnabled: false },
     },
   });
 
   const getAuthHeader = async () => {
-    if (!authUser) return {};
+    if (!authUser) throw new Error("User not authenticated.");
     const token = await authUser.getIdToken();
     return { 'Authorization': `Bearer ${token}` };
   };
@@ -119,7 +121,7 @@ export default function IntegrasiPage() {
         setSettings(data);
         form.reset({
             waha: { baseUrl: data.waha?.baseUrl || '', session: data.waha?.session || 'default' },
-            n8n: { outboundWebhookUrl: data.n8n?.outboundWebhookUrl || '' },
+            n8n: { inboundWebhookUrl: data.n8n?.inboundWebhookUrl || '', outboundWebhookUrl: data.n8n?.outboundWebhookUrl || '' },
             secrets: { crmWebhookSecret: data.secrets?.crmWebhookSecret || '' },
             flags: { inboundEnabled: data.flags?.inboundEnabled || false, outboundEnabled: data.flags?.outboundEnabled || false },
         });
@@ -260,7 +262,7 @@ export default function IntegrasiPage() {
                     {form.formState.errors.waha?.baseUrl && <p className="text-sm text-destructive">{form.formState.errors.waha.baseUrl.message}</p>}
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="waha.session">Session Name</Label>
+                    <Label htmlFor="waha.session">Default Session Name</Label>
                     <Input id="waha.session" {...form.register('waha.session')} />
                     {form.formState.errors.waha?.session && <p className="text-sm text-destructive">{form.formState.errors.waha.session.message}</p>}
                 </div>
@@ -270,6 +272,11 @@ export default function IntegrasiPage() {
             {/* n8n Settings */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">n8n</h3>
+               <div className="space-y-2">
+                <Label htmlFor="n8n.inboundWebhookUrl">Inbound Webhook URL</Label>
+                <Input id="n8n.inboundWebhookUrl" {...form.register('n8n.inboundWebhookUrl')} placeholder="https://n8n.example.com/webhook/..." />
+                {form.formState.errors.n8n?.inboundWebhookUrl && <p className="text-sm text-destructive">{form.formState.errors.n8n.inboundWebhookUrl.message}</p>}
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="n8n.outboundWebhookUrl">Outbound Webhook URL</Label>
                 <Input id="n8n.outboundWebhookUrl" {...form.register('n8n.outboundWebhookUrl')} placeholder="https://n8n.example.com/webhook/..." />
