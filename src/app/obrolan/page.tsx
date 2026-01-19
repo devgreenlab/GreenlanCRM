@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { collection, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
 import type { Lead, Activity } from '@/lib/firestore/types';
@@ -10,7 +10,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/shared/error-state';
 import { EmptyState } from '@/components/shared/empty-state';
 import { MessageCircle, Send, CornerUpLeft } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { Card, CardHeader, CardContent, CardFooter } from '@/components/ui/card';
@@ -45,6 +44,8 @@ function ChatListItem({
   onSelect: () => void;
 }) {
   const displayName = lead.customerName || lead.phone || "Unknown";
+  const lastActivityTime = lead.lastInboundAt || lead.createdAt;
+  
   return (
     <div
       className={cn(
@@ -60,9 +61,9 @@ function ChatListItem({
       <div className="flex-1 overflow-hidden">
         <div className="flex justify-between items-center">
           <div className="font-semibold truncate">{displayName}</div>
-          {lead.lastInboundAt && (
+          {lastActivityTime && (
             <div className="text-xs text-muted-foreground whitespace-nowrap">
-              {formatDistanceToNow(lead.lastInboundAt.toDate(), {
+              {formatDistanceToNow(lastActivityTime.toDate(), {
                 addSuffix: true,
                 locale: idLocale,
               })}
@@ -108,12 +109,17 @@ function ChatWindow({ lead }: { lead: Lead | null }) {
     if (!firestore || !lead) return null;
     return query(
       collection(firestore, FIRESTORE_COLLECTIONS.activities),
-      where('leadId', '==', lead.id),
-      orderBy('createdAt', 'asc')
+      where('leadId', '==', lead.id)
+      // orderBy is removed to prevent index-related permission issues
     );
   }, [firestore, lead]);
 
   const { data: activities, isLoading, error } = useCollection<Activity>(activitiesQuery);
+
+  const sortedActivities = React.useMemo(() => {
+    if (!activities) return [];
+    return [...activities].sort((a, b) => (a.createdAt?.toMillis() || 0) - (b.createdAt?.toMillis() || 0));
+  }, [activities]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -121,7 +127,7 @@ function ChatWindow({ lead }: { lead: Lead | null }) {
 
   React.useEffect(() => {
     scrollToBottom();
-  }, [activities]);
+  }, [sortedActivities]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -181,10 +187,10 @@ function ChatWindow({ lead }: { lead: Lead | null }) {
           <div className="p-4 space-y-4">
             {isLoading && <Skeleton className="h-16 w-1/2" />}
             {error && <ErrorState onRetry={() => {}} message="Gagal memuat pesan." />}
-            {activities && activities.length === 0 && (
+            {sortedActivities && sortedActivities.length === 0 && (
                 <EmptyState icon={MessageCircle} title="Belum Ada Pesan" description="Mulai percakapan dengan mengirim pesan pertama." />
             )}
-            {activities?.map((activity) => (
+            {sortedActivities?.map((activity) => (
               <ActivityBubble key={activity.id} activity={activity} />
             ))}
             <div ref={messagesEndRef} />
@@ -253,22 +259,17 @@ export default function ObrolanPage() {
     const baseFilter = where('source', '==', 'whatsapp');
 
     if (userProfile.role === 'SUPER_ADMIN') {
-      // Super admin sees all whatsapp leads.
       return query(coll, baseFilter);
     } 
     
     if (userProfile.role === 'HEAD_SALES' && userProfile.teamId) {
-      // Head of Sales sees whatsapp leads from their own team.
       return query(coll, baseFilter, where('teamId', '==', userProfile.teamId));
     } 
     
     if (userProfile.role === 'SALES') {
-      // Sales see their own assigned whatsapp leads.
       return query(coll, baseFilter, where('ownerUid', '==', userProfile.id));
     }
 
-    // For any other case (e.g., role not set, sales/head of sales without team/id),
-    // return a query that finds nothing to ensure no data is leaked and no error is thrown.
     return query(coll, where('ownerUid', '==', 'user-has-no-permission'));
   }, [firestore, userProfile]);
 
@@ -279,17 +280,21 @@ export default function ObrolanPage() {
 
   const handleRetry = () => window.location.reload();
   
+  const sortedLeads = React.useMemo(() => {
+    if (!leads) return [];
+    // Sort by lastInboundAt descending, then createdAt descending as fallback
+    return [...leads].sort((a, b) => {
+      const timeA = a.lastInboundAt?.toMillis() || a.createdAt?.toMillis() || 0;
+      const timeB = b.lastInboundAt?.toMillis() || b.createdAt?.toMillis() || 0;
+      return timeB - timeA;
+    });
+  }, [leads]);
+  
   React.useEffect(() => {
-    if (leads && leads.length > 0 && !selectedLead) {
-      // Sort leads by lastInboundAt if available, otherwise createdAt
-      const sortedLeads = [...leads].sort((a, b) => {
-        const timeA = a.lastInboundAt?.toMillis() || a.createdAt?.toMillis() || 0;
-        const timeB = b.lastInboundAt?.toMillis() || b.createdAt?.toMillis() || 0;
-        return timeB - timeA;
-      });
+    if (sortedLeads.length > 0 && !selectedLead) {
       setSelectedLead(sortedLeads[0]);
     }
-  }, [leads, selectedLead]);
+  }, [sortedLeads, selectedLead]);
 
 
   const renderContent = () => {
@@ -299,14 +304,6 @@ export default function ObrolanPage() {
     if (error) {
       return <ErrorState onRetry={handleRetry} message="Gagal memuat daftar obrolan." />;
     }
-    
-    const sortedLeads = leads 
-      ? [...leads].sort((a, b) => {
-          const timeA = a.lastInboundAt?.toMillis() || a.createdAt?.toMillis() || 0;
-          const timeB = b.lastInboundAt?.toMillis() || b.createdAt?.toMillis() || 0;
-          return timeB - timeA;
-        })
-      : [];
 
     if (!sortedLeads || sortedLeads.length === 0) {
       return (

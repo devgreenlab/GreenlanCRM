@@ -32,7 +32,7 @@ function LeadCard({ lead }: { lead: Lead }) {
         <div className="flex justify-between items-start">
             <div>
                 <p className="font-semibold text-sm">{lead.customerName}</p>
-                <p className="text-xs text-muted-foreground">{lead.companyName || lead.phone}</p>
+                <p className="text-xs text-muted-foreground">{lead.phone}</p>
             </div>
             <Badge variant="secondary" className="capitalize">{lead.source}</Badge>
         </div>
@@ -199,7 +199,8 @@ export default function ProspekPage() {
     if (userProfile.role === 'SALES') {
       return query(coll, where('ownerUid', '==', userProfile.id));
     }
-    return null;
+    // Return a query that will yield no results if conditions are not met.
+    return query(coll, where('ownerUid', '==', 'user-has-no-permission'));
   }, [firestore, userProfile]);
 
   const pipelineSettingsRef = useMemoFirebase(() => {
@@ -227,7 +228,7 @@ export default function ProspekPage() {
         />
       );
     }
-    if (!leads) { 
+    if (!leads || leads.length === 0) { 
       return (
         <EmptyState
           icon={View}

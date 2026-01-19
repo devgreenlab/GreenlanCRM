@@ -129,6 +129,7 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
           ...updateData,
           teamId: data.role === 'SUPER_ADMIN' ? null : data.teamId,
           wahaSession: data.role === 'SALES' ? data.wahaSession : null,
+          waNumber: data.role === 'SALES' ? data.waNumber : null,
           updatedAt: serverTimestamp(),
         });
         toast({ title: 'Success', description: 'User updated successfully.' });
@@ -168,6 +169,7 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
           ...userData,
           teamId: data.role === 'SUPER_ADMIN' ? null : data.teamId,
           wahaSession: data.role === 'SALES' ? data.wahaSession : null,
+          waNumber: data.role === 'SALES' ? data.waNumber : null,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -268,7 +270,7 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
                         <FormItem>
                         <FormLabel>WAHA Session Name</FormLabel>
                         <FormControl>
-                            <Input placeholder="e.g., sales_john" {...field} />
+                            <Input placeholder="e.g., sales_john" {...field} value={field.value ?? ''}/>
                         </FormControl>
                          <FormDescription>
                             The unique session name for this sales agent in WAHA.
@@ -284,7 +286,7 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
                         <FormItem>
                         <FormLabel>WhatsApp Number (Optional)</FormLabel>
                         <FormControl>
-                            <Input placeholder="e.g., 628123456789" {...field} />
+                            <Input placeholder="e.g., 628123456789" {...field} value={field.value ?? ''} />
                         </FormControl>
                          <FormDescription>
                             The WhatsApp number associated with this account for display purposes.

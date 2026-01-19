@@ -38,9 +38,6 @@ export type Lead = {
   source: "whatsapp" | "web" | "manual";
   customerName: string;
   phone: string; // The customer's phone number
-  city?: string;
-  companyName?: string;
-  needType?: "pengujian" | "pelatihan" | "lainnya";
   stage: string;
   lastInboundAt?: Timestamp;
   lastOutboundAt?: Timestamp;
@@ -105,7 +102,7 @@ export type IntegrationSettings = {
         outboundWebhookUrl: string;
     };
     // Public metadata about secrets, the actual secrets are stored server-side
-    secrets: {
+    secrets?: {
         crmWebhookSecret?: string;
         wahaApiKeyLast4?: string;
         wahaApiKeyRotatedAt?: Timestamp;
