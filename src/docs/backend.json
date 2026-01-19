@@ -159,6 +159,7 @@
         "roleAccess": {
           "type": "object",
           "properties": {
+            "SUPER_ADMIN": { "type": "array", "items": { "type": "string" } },
             "HEAD_SALES": { "type": "array", "items": { "type": "string" } },
             "SALES": { "type": "array", "items": { "type": "string" } }
           }

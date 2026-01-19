@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { collection, query, where, orderBy } from 'firebase/firestore';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
 import type { Lead, Activity } from '@/lib/firestore/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -20,12 +20,13 @@ import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { useUser } from '@/firebase';
 
 
-function getInitials(name = '') {
-    if (!name) return 'U'; // U for Unknown
-    return name
+function getInitials(name?: string, phone?: string) {
+    const targetName = name || phone || "Unknown";
+    if (targetName === "Unknown") return "U";
+    
+    return targetName
       .split(' ')
       .map((n) => n[0])
       .slice(0, 2)
@@ -168,7 +169,7 @@ function ChatWindow({ lead }: { lead: Lead | null }) {
       <CardHeader className="flex flex-row items-center gap-4 border-b">
         <Avatar>
           <AvatarImage src={`https://i.pravatar.cc/150?u=${lead.chatId}`} />
-          <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
+          <AvatarFallback>{getInitials(lead.customerName, lead.phone)}</AvatarFallback>
         </Avatar>
         <div>
           <div className="font-semibold">{displayName}</div>

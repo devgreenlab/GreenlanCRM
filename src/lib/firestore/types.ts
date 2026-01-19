@@ -120,9 +120,9 @@ export type IntegrationSettings = {
 
 export type AuditLog = {
     id: string;
-    action: 'SAVE_INTEGRATION_SETTINGS' | 'SET_WAHA_KEY' | 'CLEAR_WAHA_KEY' | 'TEST_WAHA_CONNECTION' | 'SEND_WA_ATTEMPT' | 'SEND_WA_SUCCESS' | 'SEND_WA_FAIL';
+    action: 'SAVE_INTEGRATION_SETTINGS' | 'SET_WAHA_KEY' | 'CLEAR_WAHA_KEY' | 'TEST_WAHA_CONNECTION' | 'SEND_WA_ATTEMPT' | 'SEND_WA_SUCCESS' | 'SEND_WA_FAIL' | 'TEST_SUMOPOD_SUCCESS' | 'TEST_SUMOPOD_FAIL' | 'SET_SUMOPOD_KEY' | 'CLEAR_SUMOPOD_KEY';
     byUid: string;
     at: Timestamp;
-    result: 'SUCCESS' | 'FAILURE';
+    result: 'SUCCESS' | 'FAILURE' | 'FAIL';
     message?: string;
 };

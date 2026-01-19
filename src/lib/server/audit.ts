@@ -2,19 +2,13 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { getAdminFirestore } from './firebase-admin';
 import { FIRESTORE_COLLECTIONS } from '../firestore/collections';
-
-type AuditLogPayload = {
-    action: 'SAVE_INTEGRATION_SETTINGS' | 'SET_WAHA_KEY' | 'CLEAR_WAHA_KEY' | 'TEST_WAHA_CONNECTION' | 'SEND_WA_ATTEMPT' | 'SEND_WA_SUCCESS' | 'SEND_WA_FAIL';
-    byUid: string;
-    result: 'SUCCESS' | 'FAILURE';
-    message?: string;
-};
+import type { AuditLog } from '../firestore/types';
 
 /**
  * Creates an audit log entry in Firestore.
  * This function is designed to be called from server-side environments (e.g., API Routes).
  */
-export async function createAuditLog(payload: AuditLogPayload): Promise<void> {
+export async function createAuditLog(payload: Omit<AuditLog, 'id' | 'at'>): Promise<void> {
     try {
         const db = getAdminFirestore();
         const logRef = db.collection(FIRESTORE_COLLECTIONS.auditLogs).doc();

@@ -5,8 +5,7 @@ export const FIRESTORE_COLLECTIONS = {
   leads: 'leads',
   deals: 'deals',
   activities: 'activities',
-  pipelineStages: 'settings/pipeline/stages',
-  generalSettings: 'settings/general',
+  settings: 'settings',
   integrationSettings: 'integrations/settings',
   auditLogs: 'audit_logs',
 };
