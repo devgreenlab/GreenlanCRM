@@ -10,6 +10,7 @@ import {
   Settings,
   Shield,
   ShoppingCart,
+  Smartphone,
   User,
   UserCog,
   Users,
@@ -92,6 +93,7 @@ export const MENU_ITEMS: MenuItem[] = [
       { key: 'users', href: '/pengaturan/users', title: 'Users', icon: UserCog },
       { key: 'teams', href: '/pengaturan/teams', title: 'Teams', icon: Shield },
       { key: 'pipeline', href: '/pengaturan/pipeline', title: 'Pipeline', icon: Network },
+      { key: 'sales-config', href: '/pengaturan/sales-config', title: 'Sales Config', icon: Smartphone },
     ],
   },
 ];
