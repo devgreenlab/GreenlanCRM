@@ -1,85 +1,88 @@
+// src/app/api/admin/integrations/test-waha/route.ts
 import { NextResponse } from 'next/server';
-import { doc, getDoc } from 'firebase/firestore';
-import { getAuthenticatedAppForUser } from '@/lib/firebase/server-app';
-import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
-import { createAuditLog } from '@/lib/firestore/audit';
-// In a real scenario, you'd import from '@google-cloud/secret-manager'
-// For this example, we'll simulate the behavior.
-// import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
+import { verifySuperAdmin } from '@/lib/server/auth-utils';
+import { createAuditLog } from '@/lib/server/audit';
+import { getAdminFirestore } from '@/lib/server/firebase-admin';
 
-async function checkSuperAdmin(auth: any) {
-    if (!auth.currentUser) return false;
-    const userDoc = await getDoc(doc(getAuthenticatedAppForUser().firestore, FIRESTORE_COLLECTIONS.users, auth.currentUser.uid));
-    return userDoc.exists() && userDoc.data().role === 'SUPER_ADMIN';
+// In a real application, this would retrieve the key from a secure store like Google Secret Manager
+async function getWahaApiKey(): Promise<string | null> {
+    // !! SIMULATION !!
+    // This is a placeholder. In a real app, you would fetch this from a secure location.
+    // For this prototype, we'll read it from a Firestore doc that clients can't access.
+    // This is NOT a recommended production pattern for storing secrets.
+    try {
+        const db = getAdminFirestore();
+        const secretDoc = await db.collection('integrations_secrets').doc('waha').get();
+        if (secretDoc.exists) {
+            return secretDoc.data()?.apiKey || null;
+        }
+        return null;
+    } catch (e) {
+        console.error("Could not retrieve WAHA API Key placeholder:", e);
+        return null;
+    }
 }
 
-// SIMULATED Secret Manager function
-async function getSecret(): Promise<string | null> {
-    console.log(`[SIMULATED] Fetching WAHA API Key from Secret Manager.`);
-    // In a real implementation:
-    // const [version] = await secretManager.accessSecretVersion({ name: SECRET_NAME });
-    // return version.payload?.data?.toString() || null;
-    // For simulation, we return a mock key if it's supposed to be set.
-    // In a real app, you can't know this, but we need it for the test logic.
-    return "simulated_secret_key";
-}
 
 export async function POST(request: Request) {
-    const { auth } = getAuthenticatedAppForUser();
-    const uid = auth.currentUser?.uid;
-
-    if (!uid) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    let userUid: string;
     try {
-        if (!(await checkSuperAdmin(auth))) {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        const { uid } = await verifySuperAdmin(request);
+        userUid = uid;
+
+        const db = getAdminFirestore();
+        const settingsDoc = await db.collection('integrations').doc('settings').get();
+        const settings = settingsDoc.data();
+
+        if (!settings?.waha?.baseUrl) {
+            throw new Error('WAHA Base URL is not configured.');
         }
 
-        const settingsRef = doc(getAuthenticatedAppForUser().firestore, FIRESTORE_COLLECTIONS.integrationSettings);
-        const settingsDoc = await getDoc(settingsRef);
-
-        if (!settingsDoc.exists() || !settingsDoc.data().waha?.baseUrl || !settingsDoc.data().waha?.apiKeyLast4) {
-            throw new Error('WAHA settings or API Key are not configured.');
-        }
-
-        const { baseUrl } = settingsDoc.data().waha;
-        const apiKey = await getSecret(); // Fetch securely on the server
-        
+        const apiKey = await getWahaApiKey();
         if (!apiKey) {
-            throw new Error('WAHA API Key is not available in the secret store.');
+            throw new Error('WAHA API Key is not set.');
         }
 
-        // In a real test, you'd call a specific WAHA endpoint, e.g., /api/sessions
-        const testUrl = `${baseUrl}/api/sessions`;
-
+        const testUrl = `${settings.waha.baseUrl}/api/sessions/${settings.waha.session || 'default'}`;
+        
         const response = await fetch(testUrl, {
             method: 'GET',
-            headers: { 'X-Api-Key': apiKey },
+            headers: {
+                'X-Api-Key': apiKey,
+                'Content-Type': 'application/json',
+            },
         });
 
         if (!response.ok) {
-            throw new Error(`WAHA server responded with status ${response.status}. Check Base URL and API Key.`);
+            const errorBody = await response.text();
+            throw new Error(`WAHA API returned status ${response.status}: ${errorBody}`);
         }
-        
+
+        const data = await response.json();
+
         await createAuditLog({
-            action: 'TEST_WAHA_SUCCESS',
+            action: 'TEST_WAHA_CONNECTION',
             byUid: uid,
             result: 'SUCCESS',
-            message: `Successfully connected to WAHA at ${baseUrl}.`,
+            message: `Successfully connected to WAHA at ${settings.waha.baseUrl}.`,
         });
 
-        return NextResponse.json({ message: 'Connection to WAHA successful!' });
+        return NextResponse.json({ success: true, data }, { status: 200 });
 
-    } catch (e: any) {
-        console.error('Error testing WAHA connection:', e);
-         await createAuditLog({
-            action: 'TEST_WAHA_FAIL',
-            byUid: uid,
-            result: 'FAIL',
-            message: e.message || 'An unknown error occurred during the test.',
-        });
-        return NextResponse.json({ error: e.message || 'An unknown error occurred' }, { status: 500 });
+    } catch (error: any) {
+        const message = error.message || 'Failed to test WAHA connection.';
+        if (userUid!) {
+            await createAuditLog({
+                action: 'TEST_WAHA_CONNECTION',
+                byUid: userUid,
+                result: 'FAILURE',
+                message,
+            });
+        }
+        if (error.status) {
+            return NextResponse.json({ success: false, error: message }, { status: error.status });
+        }
+        console.error('Error testing WAHA connection:', error);
+        return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }

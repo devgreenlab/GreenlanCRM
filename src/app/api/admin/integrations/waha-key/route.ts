@@ -1,134 +1,139 @@
+// src/app/api/admin/integrations/waha-key/route.ts
 import { NextResponse } from 'next/server';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { getAuthenticatedAppForUser } from '@/lib/firebase/server-app';
-import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
-import { createAuditLog } from '@/lib/firestore/audit';
-// In a real scenario, you'd import from '@google-cloud/secret-manager'
-// For this example, we'll simulate the behavior.
-// import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
+import { FieldValue } from 'firebase-admin/firestore';
+import { verifySuperAdmin } from '@/lib/server/auth-utils';
+import { getAdminFirestore } from '@/lib/server/firebase-admin';
+import { createAuditLog } from '@/lib/server/audit';
 
-// const secretManager = new SecretManagerServiceClient();
-const SECRET_NAME = `projects/${process.env.GCP_PROJECT_ID}/secrets/waha_api_key/versions/latest`;
-
-async function checkSuperAdmin(auth: any) {
-    if (!auth.currentUser) return false;
-    const userDoc = await getDoc(doc(getAuthenticatedAppForUser().firestore, FIRESTORE_COLLECTIONS.users, auth.currentUser.uid));
-    return userDoc.exists() && userDoc.data().role === 'SUPER_ADMIN';
+// In a real application, this would save the key to a secure store like Google Secret Manager
+async function saveWahaApiKey(apiKey: string): Promise<void> {
+    // !! SIMULATION !!
+    // This is a placeholder. In a real app, you would save this to a secure location.
+    // For this prototype, we'll save it to a Firestore doc that clients can't access.
+    // This is NOT a recommended production pattern for storing secrets.
+    try {
+        const db = getAdminFirestore();
+        await db.collection('integrations_secrets').doc('waha').set({ apiKey });
+    } catch(e) {
+        console.error("Could not save WAHA API Key placeholder:", e);
+        throw new Error("Failed to save API key.");
+    }
 }
 
-// SIMULATED Secret Manager function
-async function saveSecret(key: string): Promise<void> {
-    console.log(`[SIMULATED] Saving WAHA API Key to Secret Manager. Key: ${key.substring(0, 4)}...`);
-    // In a real implementation:
-    // await secretManager.addSecretVersion({
-    //   parent: `projects/${process.env.GCP_PROJECT_ID}/secrets/waha_api_key`,
-    //   payload: { data: Buffer.from(key, 'utf8') },
-    // });
-    return Promise.resolve();
-}
-
-// SIMULATED Secret Manager function
-async function deleteSecret(): Promise<void> {
-    console.log(`[SIMULATED] Deleting/disabling WAHA API Key from Secret Manager.`);
-    // In a real implementation, you would disable the latest version.
-    return Promise.resolve();
+// In a real application, this would delete the key from a secure store
+async function deleteWahaApiKey(): Promise<void> {
+    // !! SIMULATION !!
+    try {
+        const db = getAdminFirestore();
+        await db.collection('integrations_secrets').doc('waha').delete();
+    } catch(e) {
+        console.error("Could not delete WAHA API Key placeholder:", e);
+        throw new Error("Failed to clear API key.");
+    }
 }
 
 
 export async function POST(request: Request) {
-    const { auth } = getAuthenticatedAppForUser();
-    const uid = auth.currentUser?.uid;
-
-    if (!uid) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    let userUid: string;
     try {
-        if (!(await checkSuperAdmin(auth))) {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        const { uid } = await verifySuperAdmin(request);
+        userUid = uid;
+        const body = await request.json();
+        const { apiKey } = body;
+
+        if (typeof apiKey !== 'string' || apiKey.length < 10) {
+            throw new Error('A valid API key is required.');
         }
 
-        const { apiKey } = await request.json();
-        if (!apiKey || typeof apiKey !== 'string') {
-            return NextResponse.json({ error: 'API key is required' }, { status: 400 });
-        }
+        // Save the key to a secure, server-only location
+        await saveWahaApiKey(apiKey);
 
-        // Securely save the key
-        await saveSecret(apiKey);
+        // Update the public metadata in the main settings document
+        const db = getAdminFirestore();
+        const settingsRef = db.collection('integrations').doc('settings');
 
-        // Update the non-secret metadata in Firestore
-        const settingsRef = doc(getAuthenticatedAppForUser().firestore, FIRESTORE_COLLECTIONS.integrationSettings);
-        await setDoc(settingsRef, {
-            waha: {
-                apiKeyLast4: apiKey.slice(-4),
-                apiKeyRotatedAt: serverTimestamp(),
-            }
-        }, { merge: true });
-        
+        const metadata = {
+            'secrets.wahaApiKeyLast4': apiKey.slice(-4),
+            'secrets.wahaApiKeyRotatedAt': FieldValue.serverTimestamp(),
+            'updatedBy': uid,
+            'updatedAt': FieldValue.serverTimestamp(),
+        };
+
+        await settingsRef.set(metadata, { merge: true });
+
         await createAuditLog({
             action: 'SET_WAHA_KEY',
             byUid: uid,
             result: 'SUCCESS',
-            message: 'WAHA API Key was set/rotated.',
+            message: 'Successfully set/rotated WAHA API key.',
         });
 
-        return NextResponse.json({ message: 'WAHA API Key set successfully' });
+        // Return only the public metadata, NOT the key
+        return NextResponse.json({
+            wahaApiKeyLast4: metadata['secrets.wahaApiKeyLast4'],
+            wahaApiKeyRotatedAt: new Date().toISOString(), // Approximate for client
+        }, { status: 200 });
 
-    } catch (e: any) {
-        console.error('Error setting WAHA key:', e);
-        await createAuditLog({
-            action: 'SET_WAHA_KEY',
-            byUid: uid,
-            result: 'FAIL',
-            message: e.message || 'An unknown error occurred.',
-        });
-        return NextResponse.json({ error: e.message || 'An unknown error occurred' }, { status: 500 });
+    } catch (error: any) {
+        const message = error.message || 'Failed to set API key.';
+        if (userUid!) {
+            await createAuditLog({
+                action: 'SET_WAHA_KEY',
+                byUid: userUid,
+                result: 'FAILURE',
+                message,
+            });
+        }
+        if (error.status) {
+            return NextResponse.json({ error: message }, { status: error.status });
+        }
+        console.error('Error setting WAHA API key:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
 
-
 export async function DELETE(request: Request) {
-    const { auth } = getAuthenticatedAppForUser();
-    const uid = auth.currentUser?.uid;
-
-    if (!uid) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
+    let userUid: string;
     try {
-        if (!(await checkSuperAdmin(auth))) {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-        }
+        const { uid } = await verifySuperAdmin(request);
+        userUid = uid;
+        
+        await deleteWahaApiKey();
 
-        // Delete/disable the secret
-        await deleteSecret();
+        const db = getAdminFirestore();
+        const settingsRef = db.collection('integrations').doc('settings');
 
-        // Update the metadata in Firestore
-        const settingsRef = doc(getAuthenticatedAppForUser().firestore, FIRESTORE_COLLECTIONS.integrationSettings);
-        await setDoc(settingsRef, {
-            waha: {
-                apiKeyLast4: null,
-                apiKeyRotatedAt: serverTimestamp(),
-            }
-        }, { merge: true });
+        const metadata = {
+            'secrets.wahaApiKeyLast4': FieldValue.delete(),
+            'secrets.wahaApiKeyRotatedAt': FieldValue.delete(),
+             'updatedBy': uid,
+            'updatedAt': FieldValue.serverTimestamp(),
+        };
+
+        await settingsRef.update(metadata);
 
         await createAuditLog({
             action: 'CLEAR_WAHA_KEY',
             byUid: uid,
             result: 'SUCCESS',
-            message: 'WAHA API Key was cleared.',
+            message: 'Successfully cleared WAHA API key.',
         });
-
-        return NextResponse.json({ message: 'WAHA API Key cleared successfully' });
-
-    } catch (e: any) {
-        console.error('Error clearing WAHA key:', e);
-        await createAuditLog({
-            action: 'CLEAR_WAHA_KEY',
-            byUid: uid,
-            result: 'FAIL',
-            message: e.message || 'An unknown error occurred.',
-        });
-        return NextResponse.json({ error: e.message || 'An unknown error occurred' }, { status: 500 });
+        
+        return NextResponse.json({ message: 'API Key cleared' }, { status: 200 });
+    } catch (error: any) {
+        const message = error.message || 'Failed to clear API key.';
+        if (userUid!) {
+            await createAuditLog({
+                action: 'CLEAR_WAHA_KEY',
+                byUid: userUid,
+                result: 'FAILURE',
+                message,
+            });
+        }
+         if (error.status) {
+            return NextResponse.json({ error: message }, { status: error.status });
+        }
+        console.error('Error clearing WAHA API key:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

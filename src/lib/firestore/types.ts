@@ -43,6 +43,7 @@ export type Lead = {
   lastInboundAt: Timestamp;
   lastOutboundAt?: Timestamp;
   lastMessagePreview: string;
+  lastOutboundAt?: Timestamp;
   createdAt: Timestamp;
   updatedAt: Timestamp;
   chatId: string;
@@ -92,6 +93,7 @@ export type PipelineSettings = {
 };
 
 export type IntegrationSettings = {
+<<<<<<< HEAD
   id?: string;
   waha: {
     baseUrl: string;
@@ -135,3 +137,34 @@ export type AuditLog = {
     message: string;
     context?: Record<string, any>;
 }
+=======
+    id: string;
+    waha: {
+        baseUrl: string;
+        session: string;
+    };
+    n8n: {
+        outboundWebhookUrl: string;
+    };
+    secrets: {
+        crmWebhookSecret?: string;
+        wahaApiKeyLast4?: string;
+        wahaApiKeyRotatedAt?: Timestamp;
+    };
+    flags: {
+        inboundEnabled: boolean;
+        outboundEnabled: boolean;
+    };
+    updatedAt: Timestamp;
+    updatedBy: string; // UID
+};
+
+export type AuditLog = {
+    id: string;
+    action: 'SAVE_INTEGRATION_SETTINGS' | 'SET_WAHA_KEY' | 'CLEAR_WAHA_KEY' | 'TEST_WAHA_CONNECTION' | 'SEND_WA_ATTEMPT' | 'SEND_WA_SUCCESS' | 'SEND_WA_FAIL';
+    byUid: string;
+    at: Timestamp;
+    result: 'SUCCESS' | 'FAILURE';
+    message?: string;
+};
+>>>>>>> c858b7491cf7aa5de7f27c41f8dd6bc7fb86a988
