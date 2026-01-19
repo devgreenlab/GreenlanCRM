@@ -65,8 +65,11 @@ service cloud.firestore {
     }
 
     match /contacts/{contactId} {
-      allow read: if isSignedIn() && (
+      allow get: if isSignedIn() && (
         isSuperAdmin(request.auth.uid) || isUserInTeam(request.auth.uid, resource.data.teamId)
+      );
+      allow list: if isSignedIn() && (
+        isSuperAdmin(request.auth.uid) || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamId != null
       );
       allow write: if isSignedIn() && (
         isSuperAdmin(request.auth.uid) || isUserInTeam(request.auth.uid, request.resource.data.teamId)
@@ -74,10 +77,15 @@ service cloud.firestore {
     }
 
     match /leads/{leadId} {
-      allow read: if isSignedIn() && (
+      allow get: if isSignedIn() && (
         isSuperAdmin(request.auth.uid) ||
         (userRole() == 'HEAD_SALES' && isUserInTeam(request.auth.uid, resource.data.teamId)) ||
-        (resource.data.ownerUid == request.auth.uid)
+        (userRole() == 'SALES' && resource.data.ownerUid == request.auth.uid)
+      );
+      allow list: if isSignedIn() && (
+        isSuperAdmin(request.auth.uid) ||
+        (userRole() == 'HEAD_SALES' && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamId != null) ||
+        userRole() == 'SALES'
       );
       allow write: if isSignedIn() && (
         isSuperAdmin(request.auth.uid) || isUserInTeam(request.auth.uid, request.resource.data.teamId)
@@ -85,10 +93,15 @@ service cloud.firestore {
     }
 
     match /deals/{dealId} {
-      allow read: if isSignedIn() && (
+      allow get: if isSignedIn() && (
         isSuperAdmin(request.auth.uid) ||
         (userRole() == 'HEAD_SALES' && isUserInTeam(request.auth.uid, resource.data.teamId)) ||
-        (resource.data.ownerUid == request.auth.uid)
+        (userRole() == 'SALES' && resource.data.ownerUid == request.auth.uid)
+      );
+      allow list: if isSignedIn() && (
+        isSuperAdmin(request.auth.uid) ||
+        (userRole() == 'HEAD_SALES' && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamId != null) ||
+        userRole() == 'SALES'
       );
       allow write: if isSignedIn() && (
         isSuperAdmin(request.auth.uid) || isUserInTeam(request.auth.uid, request.resource.data.teamId)
