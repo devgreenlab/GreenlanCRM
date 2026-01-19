@@ -87,26 +87,41 @@ export function AppSidebar() {
   }, []);
 
   const visibleMenuItems = React.useMemo(() => {
-    if (isProfileLoading || isNavLoading || !userProfile || !navSettings?.roleAccess) {
+    if (isProfileLoading || isNavLoading || !userProfile) {
       return [];
+    }
+
+    // Super Admins see everything. This is a safeguard.
+    if (userProfile.role === 'SUPER_ADMIN') {
+        return MENU_ITEMS;
+    }
+
+    if (!navSettings?.roleAccess) {
+        return [];
     }
 
     const userPermissions = navSettings.roleAccess[userProfile.role] || [];
     
-    const filterItems = (items: (MenuItem | SubMenuItem)[]) => {
-        return items.filter(item => userPermissions.includes(item.key))
-          .map(item => {
-              if ('subItems' in item && item.subItems) {
-                  return { ...item, subItems: filterItems(item.subItems) as SubMenuItem[] };
-              }
-              return item;
-          // An item with sub-items should still be visible even if all sub-items are filtered out.
-          // The collapsible trigger will just be a link to the parent href.
-          });
+    const buildMenu = (items: MenuItem[]): MenuItem[] => {
+      return items
+        .map(item => {
+          // Create a new item object to avoid modifying the original MENU_ITEMS
+          const newItem = { ...item };
+          if (newItem.subItems) {
+            // If the item has sub-items, filter them based on permissions
+            newItem.subItems = newItem.subItems.filter(subItem => 
+              userPermissions.includes(subItem.key)
+            );
+          }
+          return newItem;
+        })
+        .filter(item => {
+          // An item is visible if its key is in permissions OR if it has any visible sub-items
+          return userPermissions.includes(item.key) || (item.subItems && item.subItems.length > 0);
+        });
     };
 
-    return filterItems(MENU_ITEMS) as MenuItem[];
-
+    return buildMenu(MENU_ITEMS);
   }, [userProfile, navSettings, isProfileLoading, isNavLoading]);
   
 
