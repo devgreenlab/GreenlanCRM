@@ -87,12 +87,8 @@ export function AppSidebar() {
   }, []);
 
   const visibleMenuItems = React.useMemo(() => {
-    if (isProfileLoading || isNavLoading || !userProfile || !navSettings) {
+    if (isProfileLoading || isNavLoading || !userProfile || !navSettings?.roleAccess) {
       return [];
-    }
-
-    if (userProfile.role === 'SUPER_ADMIN') {
-      return MENU_ITEMS;
     }
 
     const userPermissions = navSettings.roleAccess[userProfile.role] || [];
@@ -104,7 +100,9 @@ export function AppSidebar() {
                   return { ...item, subItems: filterItems(item.subItems) as SubMenuItem[] };
               }
               return item;
-          }).filter(item => !item.subItems || item.subItems.length > 0);
+          // An item with sub-items should still be visible even if all sub-items are filtered out.
+          // The collapsible trigger will just be a link to the parent href.
+          });
     };
 
     return filterItems(MENU_ITEMS) as MenuItem[];
@@ -150,7 +148,7 @@ export function AppSidebar() {
         { isLoading ? <SidebarSkeleton /> : (
             <SidebarMenu>
             {visibleMenuItems.map((item) =>
-                item.subItems ? (
+                item.subItems && item.subItems.length > 0 ? (
                 <SidebarMenuItem key={item.key}>
                     <Collapsible defaultOpen={isSubItemActive(item.subItems)}>
                     <CollapsibleTrigger asChild>

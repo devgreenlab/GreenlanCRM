@@ -77,10 +77,6 @@ export default function NavigasiPage() {
   }, [navSettings]);
 
   const handleToggle = (role: keyof RoleAccess, key: string, isSubItem: boolean) => {
-    if (role === 'SUPER_ADMIN') {
-        return; // Super Admin permissions cannot be changed
-    }
-
     setRoleAccess((prev) => {
       if (!prev) return null;
       const newAccess = { ...prev };
@@ -158,7 +154,7 @@ export default function NavigasiPage() {
       <CardHeader>
         <CardTitle>Pengaturan Navigasi</CardTitle>
         <CardDescription>
-          Centang item menu mana yang dapat dilihat oleh setiap peran. Super Admin selalu memiliki akses ke semua menu, dan pengaturannya tidak dapat diubah.
+          Centang item menu mana yang dapat dilihat oleh setiap peran. Atur hak akses untuk setiap peran, termasuk Super Admin.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -176,8 +172,8 @@ export default function NavigasiPage() {
                 <div className="flex-1 font-medium">{item.title}</div>
                 <div className="w-24 flex justify-center">
                     <Checkbox
-                        checked={true}
-                        disabled={true}
+                        checked={roleAccess.SUPER_ADMIN.includes(item.key)}
+                        onCheckedChange={() => handleToggle('SUPER_ADMIN', item.key, false)}
                         aria-label={`Toggle ${item.title} for Super Admin`}
                         id={`sa-main-${item.key}`}
                     />
@@ -206,8 +202,8 @@ export default function NavigasiPage() {
                       <div className="flex-1 text-muted-foreground">{subItem.title}</div>
                       <div className="w-24 flex justify-center">
                         <Checkbox
-                            checked={true}
-                            disabled={true}
+                            checked={roleAccess.SUPER_ADMIN.includes(subItem.key)}
+                            onCheckedChange={() => handleToggle('SUPER_ADMIN', subItem.key, true)}
                             aria-label={`Toggle ${subItem.title} for Super Admin`}
                             id={`sa-sub-${subItem.key}`}
                         />
