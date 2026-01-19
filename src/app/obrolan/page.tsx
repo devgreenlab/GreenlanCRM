@@ -253,17 +253,17 @@ export default function ObrolanPage() {
 
     if (userProfile.role === 'SUPER_ADMIN') {
       // Super admin sees all whatsapp leads.
-      return query(coll, baseFilter, orderBy('lastInboundAt', 'desc'));
+      return query(coll, baseFilter);
     } 
     
     if (userProfile.role === 'HEAD_SALES' && userProfile.teamId) {
       // Head of Sales sees whatsapp leads from their own team.
-      return query(coll, baseFilter, where('teamId', '==', userProfile.teamId), orderBy('lastInboundAt', 'desc'));
+      return query(coll, baseFilter, where('teamId', '==', userProfile.teamId));
     } 
     
     if (userProfile.role === 'SALES') {
       // Sales see their own assigned whatsapp leads.
-      return query(coll, baseFilter, where('ownerUid', '==', userProfile.id), orderBy('lastInboundAt', 'desc'));
+      return query(coll, baseFilter, where('ownerUid', '==', userProfile.id));
     }
 
     // For any other case (e.g., role not set, sales/head of sales without team/id),
@@ -277,6 +277,19 @@ export default function ObrolanPage() {
   const error = profileError || leadsError;
 
   const handleRetry = () => window.location.reload();
+  
+  React.useEffect(() => {
+    if (leads && leads.length > 0 && !selectedLead) {
+      // Sort leads by lastInboundAt if available, otherwise createdAt
+      const sortedLeads = [...leads].sort((a, b) => {
+        const timeA = a.lastInboundAt?.toMillis() || a.createdAt?.toMillis() || 0;
+        const timeB = b.lastInboundAt?.toMillis() || b.createdAt?.toMillis() || 0;
+        return timeB - timeA;
+      });
+      setSelectedLead(sortedLeads[0]);
+    }
+  }, [leads, selectedLead]);
+
 
   const renderContent = () => {
     if (isLoading) {
@@ -285,7 +298,16 @@ export default function ObrolanPage() {
     if (error) {
       return <ErrorState onRetry={handleRetry} message="Gagal memuat daftar obrolan." />;
     }
-    if (!leads || leads.length === 0) {
+    
+    const sortedLeads = leads 
+      ? [...leads].sort((a, b) => {
+          const timeA = a.lastInboundAt?.toMillis() || a.createdAt?.toMillis() || 0;
+          const timeB = b.lastInboundAt?.toMillis() || b.createdAt?.toMillis() || 0;
+          return timeB - timeA;
+        })
+      : [];
+
+    if (!sortedLeads || sortedLeads.length === 0) {
       return (
         <EmptyState
           icon={MessageCircle}
@@ -299,7 +321,7 @@ export default function ObrolanPage() {
             <div className="col-span-1 border-r">
                  <ScrollArea className="h-full pr-4">
                     <div className="space-y-1">
-                        {leads.map((lead) => (
+                        {sortedLeads.map((lead) => (
                             <ChatListItem
                                 key={lead.id}
                                 lead={lead}
