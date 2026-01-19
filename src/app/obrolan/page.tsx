@@ -244,21 +244,31 @@ export default function ObrolanPage() {
   const [selectedLead, setSelectedLead] = React.useState<Lead | null>(null);
 
   const whatsappLeadsQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile) return null;
-
-    const coll = collection(firestore, FIRESTORE_COLLECTIONS.leads);
-    const filters: any[] = [where('source', '==', 'whatsapp'), orderBy('lastInboundAt', 'desc')];
-
-    if (userProfile.role === 'HEAD_SALES' && userProfile.teamId) {
-      filters.push(where('teamId', '==', userProfile.teamId));
-    } else if (userProfile.role === 'SALES') {
-      filters.push(where('ownerUid', '==', userProfile.id));
-    } else if (userProfile.role !== 'SUPER_ADMIN') {
-      // If not any of the above roles and not super admin, return a query that finds nothing.
-      return query(coll, where('ownerUid', '==', 'user-has-no-permission'));
+    if (!firestore || !userProfile) {
+      return null;
     }
 
-    return query(coll, ...filters);
+    const coll = collection(firestore, FIRESTORE_COLLECTIONS.leads);
+    const baseFilter = where('source', '==', 'whatsapp');
+
+    if (userProfile.role === 'SUPER_ADMIN') {
+      // Super admin sees all whatsapp leads.
+      return query(coll, baseFilter, orderBy('lastInboundAt', 'desc'));
+    } 
+    
+    if (userProfile.role === 'HEAD_SALES' && userProfile.teamId) {
+      // Head of Sales sees whatsapp leads from their own team.
+      return query(coll, baseFilter, where('teamId', '==', userProfile.teamId), orderBy('lastInboundAt', 'desc'));
+    } 
+    
+    if (userProfile.role === 'SALES') {
+      // Sales see their own assigned whatsapp leads.
+      return query(coll, baseFilter, where('ownerUid', '==', userProfile.id), orderBy('lastInboundAt', 'desc'));
+    }
+
+    // For any other case (e.g., role not set, sales/head of sales without team/id),
+    // return a query that finds nothing to ensure no data is leaked and no error is thrown.
+    return query(coll, where('ownerUid', '==', 'user-has-no-permission'));
   }, [firestore, userProfile]);
 
   const { data: leads, isLoading: isLoadingLeads, error: leadsError } = useCollection<Lead>(whatsappLeadsQuery);
