@@ -52,6 +52,7 @@ export async function POST(request: Request) {
             session: body.waha?.session || 'default',
         },
         n8n: {
+            inboundWebhookUrl: body.n8n?.inboundWebhookUrl || '',
             outboundWebhookUrl: body.n8n?.outboundWebhookUrl || ''
         },
         secrets: {

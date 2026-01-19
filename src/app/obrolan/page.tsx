@@ -20,6 +20,19 @@ import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { id as idLocale } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { useUser } from '@/firebase';
+
+
+function getInitials(name = '') {
+    if (!name) return 'U'; // U for Unknown
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+}
+
 
 function ChatListItem({
   lead,
@@ -30,6 +43,7 @@ function ChatListItem({
   isSelected: boolean;
   onSelect: () => void;
 }) {
+  const displayName = lead.customerName || lead.phone || "Unknown";
   return (
     <div
       className={cn(
@@ -39,12 +53,12 @@ function ChatListItem({
       onClick={onSelect}
     >
       <Avatar>
-        <AvatarImage src={`https://i.pravatar.cc/150?u=${lead.customerName}`} />
-        <AvatarFallback>{lead.customerName?.charAt(0)}</AvatarFallback>
+        <AvatarImage src={`https://i.pravatar.cc/150?u=${lead.chatId}`} />
+        <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
       </Avatar>
       <div className="flex-1 overflow-hidden">
         <div className="flex justify-between items-center">
-          <div className="font-semibold truncate">{lead.customerName}</div>
+          <div className="font-semibold truncate">{displayName}</div>
           {lead.lastInboundAt && (
             <div className="text-xs text-muted-foreground whitespace-nowrap">
               {formatDistanceToNow(lead.lastInboundAt.toDate(), {
@@ -74,7 +88,7 @@ function ActivityBubble({ activity }: { activity: Activity }) {
       >
         <p className="whitespace-pre-wrap">{activity.content}</p>
         <div className="text-xs opacity-70 mt-1 text-right">
-          {formatDistanceToNow(activity.createdAt.toDate(), { addSuffix: true, locale: idLocale })}
+          {activity.createdAt && formatDistanceToNow(activity.createdAt.toDate(), { addSuffix: true, locale: idLocale })}
         </div>
       </div>
     </div>
@@ -84,6 +98,7 @@ function ActivityBubble({ activity }: { activity: Activity }) {
 function ChatWindow({ lead }: { lead: Lead | null }) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { user: authUser } = useUser();
   const [message, setMessage] = React.useState('');
   const [isSending, setIsSending] = React.useState(false);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
@@ -109,14 +124,18 @@ function ChatWindow({ lead }: { lead: Lead | null }) {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || !lead) return;
+    if (!message.trim() || !lead || !authUser) return;
 
     setIsSending(true);
     try {
+        const token = await authUser.getIdToken();
       const response = await fetch('/api/wa/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, leadId: lead.id, chatId: lead.phone }),
+        headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ message, leadId: lead.id }),
       });
 
       const result = await response.json();
@@ -132,6 +151,8 @@ function ChatWindow({ lead }: { lead: Lead | null }) {
       setIsSending(false);
     }
   };
+  
+  const displayName = lead?.customerName || lead?.phone || "Unknown";
 
   if (!lead) {
     return (
@@ -146,12 +167,12 @@ function ChatWindow({ lead }: { lead: Lead | null }) {
     <Card className="h-full flex flex-col">
       <CardHeader className="flex flex-row items-center gap-4 border-b">
         <Avatar>
-          <AvatarImage src={`https://i.pravatar.cc/150?u=${lead.customerName}`} />
-          <AvatarFallback>{lead.customerName?.charAt(0)}</AvatarFallback>
+          <AvatarImage src={`https://i.pravatar.cc/150?u=${lead.chatId}`} />
+          <AvatarFallback>{getInitials(displayName)}</AvatarFallback>
         </Avatar>
         <div>
-          <div className="font-semibold">{lead.customerName}</div>
-          <div className="text-sm text-muted-foreground">{lead.phone}</div>
+          <div className="font-semibold">{displayName}</div>
+          <div className="text-sm text-muted-foreground">{lead.chatId}</div>
         </div>
       </CardHeader>
       <CardContent className="flex-1 p-0">
@@ -233,7 +254,8 @@ export default function ObrolanPage() {
     } else if (userProfile.role === 'SALES') {
       filters.push(where('ownerUid', '==', userProfile.id));
     } else if (userProfile.role !== 'SUPER_ADMIN') {
-      return null;
+      // If not any of the above roles and not super admin, return a query that finds nothing.
+      return query(coll, where('ownerUid', '==', 'user-has-no-permission'));
     }
 
     return query(coll, ...filters);

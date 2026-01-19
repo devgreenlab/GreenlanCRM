@@ -59,7 +59,7 @@ export async function POST(request: Request) {
             'updatedAt': FieldValue.serverTimestamp(),
         };
 
-        await settingsRef.set(metadata, { merge: true });
+        await settingsRef.set({ secrets: { wahaApiKeyLast4: apiKey.slice(-4), wahaApiKeyRotatedAt: FieldValue.serverTimestamp() } }, { merge: true });
 
         await createAuditLog({
             action: 'SET_WAHA_KEY',

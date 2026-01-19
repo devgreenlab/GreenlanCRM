@@ -14,6 +14,8 @@ export type UserProfile = {
   role: 'SUPER_ADMIN' | 'HEAD_SALES' | 'SALES';
   teamId?: string | null;
   isActive: boolean;
+  wahaSession?: string; // Session name for WAHA, e.g., 'sales_rika'
+  waNumber?: string;    // Display number for UI
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
 };
@@ -35,18 +37,18 @@ export type Lead = {
   teamId: string;
   source: "whatsapp" | "web" | "manual";
   customerName: string;
-  phone: string;
-  city: string;
+  phone: string; // The customer's phone number
+  city?: string;
   companyName?: string;
-  needType: "pengujian" | "pelatihan" | "lainnya";
+  needType?: "pengujian" | "pelatihan" | "lainnya";
   stage: string;
-  lastInboundAt: Timestamp;
+  lastInboundAt?: Timestamp;
   lastOutboundAt?: Timestamp;
-  lastMessagePreview: string;
-  lastOutboundAt?: Timestamp;
+  lastMessagePreview?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
-  chatId: string;
+  chatId: string; // The customer's whatsapp ID, e.g., 628...
+  wahaSession: string; // The WAHA session of the sales owner
 };
 
 export type Deal = {
@@ -68,7 +70,7 @@ export type Activity = {
   leadId?: string;
   dealId?: string;
   teamId: string;
-  actorUid: string; // userId
+  actorUid: string; // userId who performed the action
   type: "whatsapp_in" | "whatsapp_out" | "call" | "meeting" | "proposal_sent" | "follow_up" | "presentation";
   content: string;
   meta?: Record<string, any>;
@@ -93,61 +95,18 @@ export type PipelineSettings = {
 };
 
 export type IntegrationSettings = {
-<<<<<<< HEAD
-  id?: string;
-  waha: {
-    baseUrl: string;
-    session: string;
-    apiKeyLast4?: string;
-    apiKeyRotatedAt?: Timestamp;
-  };
-  n8n: {
-    outboundWebhookUrl: string;
-  };
-  sumopod: {
-    apiKeyLast4?: string;
-    apiKeyRotatedAt?: Timestamp;
-  };
-  secrets: {
-    crmWebhookSecret: string;
-  };
-  flags: {
-    inboundEnabled: boolean;
-    outboundEnabled: boolean;
-  };
-  updatedAt: Timestamp;
-  updatedBy: string; // UID of the user who updated
-};
-
-export type AuditLog = {
     id?: string;
-    action: 
-      | "SAVE_SETTINGS" 
-      | "SET_WAHA_KEY" 
-      | "CLEAR_WAHA_KEY" 
-      | "TEST_WAHA_SUCCESS" 
-      | "TEST_WAHA_FAIL"
-      | "SET_SUMOPOD_KEY"
-      | "CLEAR_SUMOPOD_KEY"
-      | "TEST_SUMOPOD_SUCCESS"
-      | "TEST_SUMOPOD_FAIL";
-    byUid: string;
-    at: Timestamp;
-    result: "SUCCESS" | "FAIL";
-    message: string;
-    context?: Record<string, any>;
-}
-=======
-    id: string;
     waha: {
         baseUrl: string;
-        session: string;
+        session: string; // Default session, can be overridden by user
     };
     n8n: {
+        inboundWebhookUrl: string;
         outboundWebhookUrl: string;
     };
+    // Public metadata about secrets, the actual secrets are stored server-side
     secrets: {
-        crmWebhookSecret?: string;
+        crmWebhookSecret?: string; // This is a shared secret, ok to be here if that's the design
         wahaApiKeyLast4?: string;
         wahaApiKeyRotatedAt?: Timestamp;
     };
@@ -155,8 +114,8 @@ export type AuditLog = {
         inboundEnabled: boolean;
         outboundEnabled: boolean;
     };
-    updatedAt: Timestamp;
-    updatedBy: string; // UID
+    updatedAt?: Timestamp;
+    updatedBy?: string; // UID
 };
 
 export type AuditLog = {
@@ -167,4 +126,3 @@ export type AuditLog = {
     result: 'SUCCESS' | 'FAILURE';
     message?: string;
 };
->>>>>>> c858b7491cf7aa5de7f27c41f8dd6bc7fb86a988

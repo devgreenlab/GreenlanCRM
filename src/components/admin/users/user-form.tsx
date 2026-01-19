@@ -47,7 +47,18 @@ const userFormSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters.').optional().or(z.literal('')),
   role: z.enum(['SUPER_ADMIN', 'HEAD_SALES', 'SALES']),
   teamId: z.string().nullable().optional(),
+  wahaSession: z.string().optional(),
+  waNumber: z.string().optional(),
   isActive: z.boolean(),
+}).refine(data => {
+    // If role is SALES, wahaSession must be a non-empty string
+    if (data.role === 'SALES') {
+        return data.wahaSession && data.wahaSession.length > 0;
+    }
+    return true;
+}, {
+    message: 'WAHA Session is required for Sales role.',
+    path: ['wahaSession'], // Path to the field that failed validation
 });
 
 type UserFormValues = z.infer<typeof userFormSchema>;
@@ -73,6 +84,8 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
       password: '',
       role: user?.role ?? 'SALES',
       teamId: user?.teamId ?? null,
+      wahaSession: user?.wahaSession ?? '',
+      waNumber: user?.waNumber ?? '',
       isActive: user?.isActive ?? true,
     },
   });
@@ -82,6 +95,7 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
   React.useEffect(() => {
     if (role === 'SUPER_ADMIN') {
       form.setValue('teamId', null);
+      form.setValue('wahaSession', '');
     }
   }, [role, form]);
 
@@ -114,6 +128,7 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
         await updateDoc(userRef, {
           ...updateData,
           teamId: data.role === 'SUPER_ADMIN' ? null : data.teamId,
+          wahaSession: data.role === 'SALES' ? data.wahaSession : null,
           updatedAt: serverTimestamp(),
         });
         toast({ title: 'Success', description: 'User updated successfully.' });
@@ -151,6 +166,8 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
           email: data.email,
           role: data.role,
           teamId: data.role === 'SUPER_ADMIN' ? null : data.teamId,
+          wahaSession: data.role === 'SALES' ? data.wahaSession : null,
+          waNumber: data.waNumber,
           isActive: data.isActive,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -245,6 +262,42 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
             </FormItem>
           )}
         />
+        {role === 'SALES' && (
+            <>
+                <FormField
+                    control={form.control}
+                    name="wahaSession"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>WAHA Session Name</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g., sales_john" {...field} />
+                        </FormControl>
+                         <FormDescription>
+                            The unique session name for this sales agent in WAHA.
+                        </FormDescription>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                 <FormField
+                    control={form.control}
+                    name="waNumber"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>WhatsApp Number (Optional)</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g., 628123456789" {...field} />
+                        </FormControl>
+                         <FormDescription>
+                            The WhatsApp number associated with this account for display purposes.
+                        </FormDescription>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </>
+        )}
         <FormField
           control={form.control}
           name="teamId"

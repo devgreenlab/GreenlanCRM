@@ -1,7 +1,7 @@
 'use server';
 
 import { NextResponse } from 'next/server';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { verifyAuthenticatedUser } from '@/lib/server/auth-utils';
 import { getAdminFirestore } from '@/lib/server/firebase-admin';
 import { createAuditLog } from '@/lib/server/audit';
@@ -11,7 +11,7 @@ import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
 async function callN8nWebhook(
     webhookUrl: string,
     secret: string,
-    payload: { chatId: string, text: string }
+    payload: { leadId: string, chatId: string, text: string, session: string }
 ) {
     const response = await fetch(webhookUrl, {
         method: 'POST',
@@ -38,11 +38,11 @@ export async function POST(request: Request) {
         // 1. Verify user authentication and role
         userProfile = await verifyAuthenticatedUser(request, ['SUPER_ADMIN', 'HEAD_SALES', 'SALES']);
         const body = await request.json();
-        const { message, leadId: reqLeadId, chatId } = body;
+        const { message, leadId: reqLeadId } = body;
         leadId = reqLeadId;
 
-        if (!message || !leadId || !chatId) {
-            throw new Error('Message, leadId, and chatId are required.');
+        if (!message || !leadId) {
+            throw new Error('Message and leadId are required.');
         }
 
         await createAuditLog({
@@ -71,28 +71,50 @@ export async function POST(request: Request) {
             throw new Error('n8n webhook URL or CRM secret is not configured.');
         }
 
-        // 4. Call n8n webhook
+        // 4. Fetch Lead to get session and chatId
+        const leadRef = db.collection(FIRESTORE_COLLECTIONS.leads).doc(leadId);
+        const leadDoc = await leadRef.get();
+        if (!leadDoc.exists) {
+            throw new Error('Lead not found.');
+        }
+        const lead = leadDoc.data() as Lead;
+        
+        // Security check: ensure user is allowed to message this lead
+        if (userProfile.role === 'SALES' && lead.ownerUid !== userProfile.id) {
+            throw new Error('You do not have permission to message this lead.');
+        }
+        if (userProfile.role === 'HEAD_SALES' && lead.teamId !== userProfile.teamId) {
+            throw new Error('This lead is not in your team.');
+        }
+
+        const session = lead.wahaSession;
+        const chatId = lead.chatId;
+
+        if (!session || !chatId) {
+            throw new Error('Lead is missing required WhatsApp information (session or chatId).');
+        }
+
+        // 5. Call n8n webhook
         await callN8nWebhook(
             settings.n8n.outboundWebhookUrl,
             settings.secrets.crmWebhookSecret,
-            { chatId, text: message }
+            { leadId, chatId, text: message, session }
         );
 
-        // 5. Log activity and update lead on success
+        // 6. Log activity and update lead on success
         const batch = db.batch();
 
         const activityRef = db.collection(FIRESTORE_COLLECTIONS.activities).doc();
         const activityPayload: Omit<Activity, 'id'> = {
             leadId,
-            teamId: userProfile.teamId || '',
+            teamId: lead.teamId,
             actorUid: userProfile.id,
             type: 'whatsapp_out',
             content: message,
-            createdAt: FieldValue.serverTimestamp() as any,
+            createdAt: FieldValue.serverTimestamp() as Timestamp,
         };
         batch.set(activityRef, activityPayload);
 
-        const leadRef = db.collection(FIRESTORE_COLLECTIONS.leads).doc(leadId);
         batch.update(leadRef, {
             lastMessagePreview: message,
             lastOutboundAt: FieldValue.serverTimestamp(),
@@ -110,7 +132,8 @@ export async function POST(request: Request) {
         
         return NextResponse.json({ success: true, message: 'Message sent successfully.' }, { status: 200 });
 
-    } catch (error: any) {
+    } catch (error: any)
+    {
         console.error('Error sending WhatsApp message:', error);
         
         if (userProfile && leadId) {
@@ -122,7 +145,7 @@ export async function POST(request: Request) {
             });
         }
         
-        const status = error.status || 500;
+        const status = (error as any).status || 500;
         return NextResponse.json({ success: false, error: error.message }, { status });
     }
 }
