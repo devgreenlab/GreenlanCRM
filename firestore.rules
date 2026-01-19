@@ -81,11 +81,12 @@ service cloud.firestore {
     }
     
     match /leads/{leadId} {
-        allow read: if isSignedIn() && (
+        allow get: if isSignedIn() && (
             isSuperAdmin() ||
             (isHeadSales() && resource.data.teamId == userTeamId()) ||
             (isSales() && resource.data.ownerUid == request.auth.uid)
         );
+        allow list: if isSignedIn();
         allow write: if isSignedIn() && (
             isSuperAdmin() ||
             (request.resource.data.teamId == userTeamId())
