@@ -86,7 +86,7 @@ function ChatWindow({ lead }: { lead: Lead | null }) {
   const { toast } = useToast();
   const [message, setMessage] = React.useState('');
   const [isSending, setIsSending] = React.useState(false);
-  const scrollAreaRef = React.useRef<HTMLDivElement>(null);
+  const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
   const activitiesQuery = useMemoFirebase(() => {
     if (!firestore || !lead) return null;
@@ -99,10 +99,12 @@ function ChatWindow({ lead }: { lead: Lead | null }) {
 
   const { data: activities, isLoading, error } = useCollection<Activity>(activitiesQuery);
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   React.useEffect(() => {
-    if (scrollAreaRef.current) {
-        scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight });
-    }
+    scrollToBottom();
   }, [activities]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -153,7 +155,7 @@ function ChatWindow({ lead }: { lead: Lead | null }) {
         </div>
       </CardHeader>
       <CardContent className="flex-1 p-0">
-        <ScrollArea className="h-full" ref={scrollAreaRef}>
+        <ScrollArea className="h-full">
           <div className="p-4 space-y-4">
             {isLoading && <Skeleton className="h-16 w-1/2" />}
             {error && <ErrorState onRetry={() => {}} message="Gagal memuat pesan." />}
@@ -163,6 +165,7 @@ function ChatWindow({ lead }: { lead: Lead | null }) {
             {activities?.map((activity) => (
               <ActivityBubble key={activity.id} activity={activity} />
             ))}
+            <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
       </CardContent>
