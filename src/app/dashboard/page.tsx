@@ -10,6 +10,7 @@ import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
 import type { Deal, Lead } from '@/lib/firestore/types';
 import { ErrorState } from '@/components/shared/error-state';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import { useTranslation } from '@/hooks/use-translation';
 
 function PageSkeleton() {
   return (
@@ -50,6 +51,7 @@ function KpiCard({
 function DashboardKpis() {
   const firestore = useFirestore();
   const { userProfile, isLoading: isProfileLoading, error: profileError } = useUserProfile();
+  const { t, locale } = useTranslation();
 
   const leadsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
@@ -93,7 +95,7 @@ function DashboardKpis() {
   }
 
   if (error) {
-    return <ErrorState onRetry={handleRetry} message="Gagal memuat data KPI." />;
+    return <ErrorState onRetry={handleRetry} message={t('kpi.error')} />;
   }
 
   const totalLeads = leads?.length ?? 0;
@@ -110,31 +112,32 @@ function DashboardKpis() {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <KpiCard
-        title="Total Revenue"
-        value={new Intl.NumberFormat('id-ID', {
+        title={t('kpi.totalRevenue')}
+        value={new Intl.NumberFormat(locale === 'id' ? 'id-ID' : 'en-US', {
           style: 'currency',
-          currency: 'IDR',
+          currency: locale === 'id' ? 'IDR' : 'USD',
+          minimumFractionDigits: 0,
         }).format(totalRevenue)}
         icon={DollarSign}
-        description="Total pendapatan dari deal yang dimenangkan."
+        description={t('kpi.totalRevenue.desc')}
       />
       <KpiCard
-        title="Total Leads"
+        title={t('kpi.totalLeads')}
         value={`${totalLeads}`}
         icon={Users}
-        description="Jumlah prospek yang masuk."
+        description={t('kpi.totalLeads.desc')}
       />
       <KpiCard
-        title="Total Deals"
+        title={t('kpi.totalDeals')}
         value={`${totalDeals}`}
         icon={TrendingUp}
-        description="Jumlah deal yang sedang berjalan."
+        description={t('kpi.totalDeals.desc')}
       />
       <KpiCard
-        title="Conversion Rate"
+        title={t('kpi.conversionRate')}
         value={`${conversionRate.toFixed(1)}%`}
         icon={BadgePercent}
-        description="Persentase deal yang berhasil dimenangkan."
+        description={t('kpi.conversionRate.desc')}
       />
     </div>
   );
@@ -143,20 +146,21 @@ function DashboardKpis() {
 
 export default function DashboardPage() {
   const { userProfile } = useUserProfile();
+  const { t } = useTranslation();
   const [greeting, setGreeting] = React.useState('');
 
   React.useEffect(() => {
     const hour = new Date().getHours();
     if (hour >= 4 && hour < 12) {
-      setGreeting('Selamat Pagi');
+      setGreeting(t('dashboard.greeting.morning'));
     } else if (hour >= 12 && hour < 15) {
-      setGreeting('Selamat Siang');
+      setGreeting(t('dashboard.greeting.afternoon'));
     } else if (hour >= 15 && hour < 19) {
-      setGreeting('Selamat Sore');
+      setGreeting(t('dashboard.greeting.evening'));
     } else {
-      setGreeting('Selamat Malam');
+      setGreeting(t('dashboard.greeting.night'));
     }
-  }, []);
+  }, [t]);
 
   const formatRole = (role?: string) => {
     if (!role) return '';
@@ -164,6 +168,8 @@ export default function DashboardPage() {
   }
 
   const firstName = userProfile?.name?.split(' ')[0] ?? '';
+  const welcomeMessage = t('dashboard.welcome');
+  const loggedInAs = userProfile?.role ? ` ${t('dashboard.loggedInAs', { role: formatRole(userProfile.role) })}` : '';
 
 
   return (
@@ -171,10 +177,10 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight font-headline">
-            {greeting && firstName ? `${greeting}, ${firstName}!` : 'Dashboard'}
+            {greeting && firstName ? `${greeting}, ${firstName}!` : t('dashboard.title')}
           </h1>
           <p className="text-muted-foreground mt-2 font-serif">
-            Selamat datang kembali.{userProfile?.role ? ` Anda login sebagai ${formatRole(userProfile.role)}.` : ''}
+            {welcomeMessage}{loggedInAs}
           </p>
         </div>
       </div>

@@ -32,6 +32,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { MENU_ITEMS, type MenuItem, type SubMenuItem } from '@/lib/menu-items';
 import { Logo } from '@/components/logo';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import { useTranslation } from '@/hooks/use-translation';
 import type { NavigationSettings } from '@/lib/firestore/types';
 
 
@@ -75,6 +76,7 @@ export function AppSidebar() {
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
   const { userProfile, isLoading: isProfileLoading } = useUserProfile();
+  const { t } = useTranslation();
 
   const navSettingsRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'settings', 'navigation') : null),
@@ -169,12 +171,12 @@ export function AppSidebar() {
                     <CollapsibleTrigger asChild>
                         <SidebarMenuButton
                         isActive={isSubItemActive(item.subItems)}
-                        tooltip={{ children: item.title }}
+                        tooltip={{ children: t(`sidebar.${item.key}` as any) }}
                         >
                         <div className="flex w-full items-center justify-between">
                             <div className="flex items-center gap-2">
                             <item.icon />
-                            <span>{item.title}</span>
+                            <span>{t(`sidebar.${item.key}` as any)}</span>
                             </div>
                             <ChevronRight className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-90" />
                         </div>
@@ -189,7 +191,7 @@ export function AppSidebar() {
                                 onClick={() => router.push(subItem.href)}
                             >
                                 <subItem.icon />
-                                <span>{subItem.title}</span>
+                                <span>{t(`sidebar.settings.${subItem.key}` as any)}</span>
                             </SidebarMenuSubButton>
                             </SidebarMenuSubItem>
                         ))}
@@ -201,11 +203,11 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.key}>
                     <SidebarMenuButton
                     isActive={pathname.startsWith(item.href)}
-                    tooltip={{ children: item.title }}
+                    tooltip={{ children: t(`sidebar.${item.key}` as any) }}
                     onClick={() => router.push(item.href)}
                     >
                     <item.icon />
-                    <span>{item.title}</span>
+                    <span>{t(`sidebar.${item.key}` as any)}</span>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
                 )

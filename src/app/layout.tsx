@@ -7,6 +7,7 @@ import { AppSidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { FirebaseClientProvider } from '@/firebase';
 import { AuthGuard } from '@/components/auth-guard';
+import { Providers } from '@/components/providers';
 import './globals.css';
 
 export default function RootLayout({
@@ -28,21 +29,23 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Alegreya&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <FirebaseClientProvider>
-          {isAuthPage ? (
-            children
-          ) : (
-            <AuthGuard>
-              <SidebarProvider>
-                <AppSidebar />
-                <SidebarInset>
-                  <Header />
-                  <div className="flex-1 overflow-y-auto">{children}</div>
-                </SidebarInset>
-              </SidebarProvider>
-            </AuthGuard>
-          )}
-        </FirebaseClientProvider>
+        <Providers>
+          <FirebaseClientProvider>
+            {isAuthPage ? (
+              children
+            ) : (
+              <AuthGuard>
+                <SidebarProvider>
+                  <AppSidebar />
+                  <SidebarInset>
+                    <Header />
+                    <div className="flex-1 overflow-y-auto">{children}</div>
+                  </SidebarInset>
+                </SidebarProvider>
+              </AuthGuard>
+            )}
+          </FirebaseClientProvider>
+        </Providers>
         <Toaster />
       </body>
     </html>

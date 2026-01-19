@@ -1,10 +1,11 @@
 'use client';
 
-import { Bell, LogOut, Search, User } from 'lucide-react';
+import { Bell, LogOut, Search, User, LifeBuoy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
+import { useTranslation } from '@/hooks/use-translation';
 
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Input } from '@/components/ui/input';
@@ -19,11 +20,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { LanguageToggle } from './language-toggle';
+
 
 export function Header() {
   const auth = useAuth();
   const { userProfile, isLoading: isProfileLoading } = useUserProfile();
   const router = useRouter();
+  const { t } = useTranslation();
 
   const handleLogout = async () => {
     try {
@@ -62,7 +66,8 @@ export function Header() {
         />
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
+        <LanguageToggle />
         <Button variant="ghost" size="icon" className="rounded-full">
           <Bell className="h-5 w-5" />
           <span className="sr-only">Toggle notifications</span>
@@ -83,7 +88,7 @@ export function Header() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 <DropdownMenuLabel className="font-normal">
-                    <div className="font-semibold">{userProfile?.name || 'My Account'}</div>
+                    <div className="font-semibold">{userProfile?.name || t('header.myAccount')}</div>
                     {userProfile?.role && (
                         <div className="text-xs text-muted-foreground">
                             {formatRole(userProfile.role)}
@@ -93,13 +98,16 @@ export function Header() {
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => router.push('/pengaturan/profil')}>
                 <User className="mr-2 h-4 w-4" />
-                <span>Profil</span>
+                <span>{t('header.profile')}</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>Support</DropdownMenuItem>
+              <DropdownMenuItem>
+                <LifeBuoy className="mr-2 h-4 w-4" />
+                <span>{t('header.support')}</span>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Logout</span>
+                <span>{t('header.logout')}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
