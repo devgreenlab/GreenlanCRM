@@ -8,5 +8,5 @@ export const FIRESTORE_COLLECTIONS = {
   pipelineStages: 'settings/pipeline/stages',
   generalSettings: 'settings/general',
   integrationSettings: 'integrations/settings',
-  logs: 'logs',
+  auditLogs: 'audit_logs',
 };

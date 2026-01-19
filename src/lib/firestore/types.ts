@@ -41,9 +41,11 @@ export type Lead = {
   needType: "pengujian" | "pelatihan" | "lainnya";
   stage: string;
   lastInboundAt: Timestamp;
+  lastOutboundAt?: Timestamp;
   lastMessagePreview: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  chatId: string;
 };
 
 export type Deal = {
@@ -88,3 +90,35 @@ export type PipelineSettings = {
     leadStages: string[];
     dealStages: string[];
 };
+
+export type IntegrationSettings = {
+  id?: string;
+  waha: {
+    baseUrl: string;
+    session: string;
+    apiKeyLast4?: string;
+    apiKeyRotatedAt?: Timestamp;
+  };
+  n8n: {
+    outboundWebhookUrl: string;
+  };
+  secrets: {
+    crmWebhookSecret: string;
+  };
+  flags: {
+    inboundEnabled: boolean;
+    outboundEnabled: boolean;
+  };
+  updatedAt: Timestamp;
+  updatedBy: string; // UID of the user who updated
+};
+
+export type AuditLog = {
+    id?: string;
+    action: "SAVE_SETTINGS" | "SET_WAHA_KEY" | "CLEAR_WAHA_KEY" | "TEST_WAHA_SUCCESS" | "TEST_WAHA_FAIL";
+    byUid: string;
+    at: Timestamp;
+    result: "SUCCESS" | "FAIL";
+    message: string;
+    context?: Record<string, any>;
+}

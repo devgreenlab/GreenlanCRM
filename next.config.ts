@@ -30,6 +30,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    // This is required for the server-side Firebase Admin SDK to work.
+    serverComponentsExternalPackages: ['firebase-admin'],
+  },
   allowedDevOrigins: [
     'https://*.cloudworkstations.dev',
   ],

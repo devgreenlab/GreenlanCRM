@@ -1,17 +1,90 @@
-
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // For internal prototyping, allow reads and writes for any authenticated user (including anonymous).
-    // This rule is NOT secure for production.
+    
+    // --- Helper Functions ---
     function isSignedIn() {
       return request.auth != null;
     }
 
+    function isSuperAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SUPER_ADMIN';
+    }
+
+    function isHeadSales() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'HEAD_SALES';
+    }
+
+    function isSales() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SALES';
+    }
+
+    function getUserTeamId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamId;
+    }
+    
+    // --- User Profile Rules ---
+    match /users/{userId} {
+      allow read, write: if isSuperAdmin();
+      allow read: if request.auth.uid == userId;
+      allow update: if request.auth.uid == userId && (
+        request.resource.data.keys().hasOnly(['name', 'updatedAt'])
+      );
+    }
+    
+    // --- Team Rules ---
+    match /teams/{teamId} {
+        allow read, list, create, update: if isSuperAdmin();
+    }
+
+    // --- CRM Data Rules (Contacts, Leads, Deals, Activities) ---
+    match /contacts/{contactId} {
+      allow read, write: if isSuperAdmin();
+      allow read, list: if isHeadSales() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamId == resource.data.teamId;
+    }
+    
+    match /leads/{leadId} {
+      allow read, write: if isSuperAdmin();
+      allow read, list: if isHeadSales() && getUserTeamId() == resource.data.teamId;
+      allow read, list: if isSales() && request.auth.uid == resource.data.ownerUid;
+      allow update: if isSales() && request.auth.uid == resource.data.ownerUid;
+    }
+
+    match /deals/{dealId} {
+      allow read, write: if isSuperAdmin();
+      allow read, list: if isHeadSales() && getUserTeamId() == resource.data.teamId;
+      allow read, list: if isSales() && request.auth.uid == resource.data.ownerUid;
+    }
+
+    match /activities/{activityId} {
+      allow read, write: if isSuperAdmin();
+      // Allow server-side writes for activities
+      allow create: if get(/databases/$(database)/documents/users/$(request.auth.uid)) != null;
+      allow read, list: if isHeadSales() && getUserTeamId() == resource.data.teamId;
+      allow read, list: if isSales() && request.auth.uid == resource.data.actorUid;
+    }
+
+    // --- Settings Rules ---
+    match /settings/{docId} {
+        allow read, write: if isSuperAdmin();
+    }
+
+    // --- Integrations & Audit Rules ---
+    match /integrations/settings {
+        allow read, write: if isSuperAdmin();
+    }
+
+    match /audit_logs/{logId} {
+        // Only allow server-side creation
+        allow create: if get(/databases/$(database)/documents/users/$(request.auth.uid)) != null;
+        // No one can read/update/delete from the client
+        allow read, update, delete: if false;
+    }
+
+    // Fallback rule for any other path - denies all access.
     match /{document=**} {
-      allow read, write: if isSignedIn();
+      allow read, write: if false;
     }
   }
 }
-
-    

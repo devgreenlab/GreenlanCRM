@@ -6,18 +6,9 @@
       "type": "object",
       "description": "Represents a team within the Greenlab CRM.",
       "properties": {
-        "name": {
-          "type": "string",
-          "description": "Name of the team."
-        },
-        "headSalesUid": {
-          "type": "string",
-          "description": "The user ID of the Head of Sales for this team."
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        }
+        "name": { "type": "string", "description": "Name of the team." },
+        "headSalesUid": { "type": "string", "description": "The user ID of the Head of Sales for this team." },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name"]
     },
@@ -27,35 +18,13 @@
       "type": "object",
       "description": "Represents a user of the Greenlab CRM.",
       "properties": {
-        "name": {
-          "type": "string",
-          "description": "Full name of the user."
-        },
-        "email": {
-          "type": "string",
-          "description": "Email address of the user, used as a unique identifier/username."
-        },
-        "role": {
-          "type": "string",
-          "description": "Role of the user.",
-          "enum": ["SUPER_ADMIN", "HEAD_SALES", "SALES"]
-        },
-        "teamId": {
-          "type": "string",
-          "description": "The ID of the team this user belongs to."
-        },
-        "isActive": {
-          "type": "boolean",
-          "description": "Whether the user account is active."
-        },
-        "createdAt": {
-            "type": "string",
-            "format": "date-time"
-        },
-        "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-        }
+        "name": { "type": "string", "description": "Full name of the user." },
+        "email": { "type": "string", "description": "Email address of the user, used as a unique identifier/username." },
+        "role": { "type": "string", "description": "Role of the user.", "enum": ["SUPER_ADMIN", "HEAD_SALES", "SALES"] },
+        "teamId": { "type": "string", "description": "The ID of the team this user belongs to." },
+        "isActive": { "type": "boolean", "description": "Whether the user account is active." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "email", "role", "isActive"]
     },
@@ -125,45 +94,79 @@
       },
       "required": ["id", "teamId", "type", "subject", "dueDate"]
     },
-    "PipelineStage": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "PipelineStage",
-      "type": "object",
-      "description": "Represents a stage in the sales pipeline.",
-      "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the pipeline stage." },
-        "name": { "type": "string", "description": "Name of the pipeline stage." },
-        "order": { "type": "number", "description": "Order of the stage in the pipeline." },
-        "pipelineType": { "type": "string", "description": "Type of pipeline this stage belongs to (e.g. lead, deal)." }
-      },
-      "required": ["id", "name", "order", "pipelineType"]
-    },
     "IntegrationSetting": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "IntegrationSetting",
+      "title": "Integration Setting",
+      "description": "Stores configurations for external service integrations like WAHA and n8n.",
       "type": "object",
-      "description": "Represents an integration setting for external services.",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the integration setting." },
-        "integrationType": { "type": "string", "description": "Type of integration (e.g., WhatsApp, Email, Calendar)." },
-        "settingKey": { "type": "string", "description": "Key for the specific setting." },
-        "settingValue": { "type": "string", "description": "Value for the specific setting." }
-      },
-      "required": ["id", "integrationType", "settingKey", "settingValue"]
+        "waha": {
+          "type": "object",
+          "properties": {
+            "baseUrl": { "type": "string", "format": "uri" },
+            "session": { "type": "string" },
+            "apiKeyLast4": { "type": "string" },
+            "apiKeyRotatedAt": { "type": "string", "format": "date-time" }
+          }
+        },
+        "n8n": {
+          "type": "object",
+          "properties": {
+            "outboundWebhookUrl": { "type": "string", "format": "uri" }
+          }
+        },
+        "secrets": {
+          "type": "object",
+          "properties": {
+            "crmWebhookSecret": { "type": "string" }
+          }
+        },
+        "flags": {
+          "type": "object",
+          "properties": {
+            "inboundEnabled": { "type": "boolean" },
+            "outboundEnabled": { "type": "boolean" }
+          }
+        },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedBy": { "type": "string", "description": "UID of the user who last updated the settings." }
+      }
     },
-    "Log": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Log",
+    "AuditLog": {
+        "title": "Audit Log",
+        "description": "Records significant events in the system for security and debugging.",
+        "type": "object",
+        "properties": {
+            "action": { "type": "string", "enum": ["SAVE_SETTINGS", "SET_WAHA_KEY", "CLEAR_WAHA_KEY", "TEST_WAHA_SUCCESS", "TEST_WAHA_FAIL"] },
+            "byUid": { "type": "string" },
+            "at": { "type": "string", "format": "date-time" },
+            "result": { "type": "string", "enum": ["SUCCESS", "FAIL"] },
+            "message": { "type": "string" },
+            "context": { "type": "object" }
+        },
+        "required": ["action", "byUid", "at", "result", "message"]
+    },
+     "NavigationSetting": {
+      "title": "Navigation Setting",
       "type": "object",
-      "description": "Represents a log entry for auditing or debugging purposes.",
+      "description": "Defines role-based access for sidebar navigation.",
       "properties": {
-        "id": { "type": "string", "description": "Unique identifier for the log entry." },
-        "timestamp": { "type": "string", "description": "Timestamp of when the log entry was created.", "format": "date-time" },
-        "level": { "type": "string", "description": "Log level (e.g., INFO, WARN, ERROR)." },
-        "message": { "type": "string", "description": "Log message." },
-        "userId": { "type": "string", "description": "Reference to User. (Relationship: User 1:N Log) User associated with the log entry." }
-      },
-      "required": ["id", "timestamp", "level", "message"]
+        "roleAccess": {
+          "type": "object",
+          "properties": {
+            "HEAD_SALES": { "type": "array", "items": { "type": "string" } },
+            "SALES": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "PipelineSetting": {
+      "title": "Pipeline Setting",
+      "type": "object",
+      "description": "Defines the stages for sales pipelines.",
+      "properties": {
+        "leadStages": { "type": "array", "description": "The stages for the lead pipeline.", "items": { "type": "string" } },
+        "dealStages": { "type": "array", "description": "The stages for the deal pipeline.", "items": { "type": "string" } }
+      }
     }
   },
   "auth": {
@@ -173,46 +176,16 @@
   },
   "firestore": {
     "structure": [
-      {
-        "path": "/teams/{teamId}",
-        "definition": { "schema": { "$ref": "#/entities/Team" }, "description": "Stores team information." }
-      },
-      {
-        "path": "/users/{userId}",
-        "definition": { "schema": { "$ref": "#/entities/User" }, "description": "Stores user information." }
-      },
-      {
-        "path": "/contacts/{contactId}",
-        "definition": { "schema": { "$ref": "#/entities/Contact" }, "description": "Stores contact information." }
-      },
-      {
-        "path": "/leads/{leadId}",
-        "definition": { "schema": { "$ref": "#/entities/Lead" }, "description": "Stores lead information." }
-      },
-      {
-        "path": "/deals/{dealId}",
-        "definition": { "schema": { "$ref": "#/entities/Deal" }, "description": "Stores deal information." }
-      },
-      {
-        "path": "/activities/{activityId}",
-        "definition": { "schema": { "$ref": "#/entities/Activity" }, "description": "Stores activity information." }
-      },
-      {
-        "path": "/settings/pipeline/stages/{stageId}",
-        "definition": { "schema": { "$ref": "#/entities/PipelineStage" }, "description": "Stores pipeline stage settings." }
-      },
-      {
-        "path": "/settings/general/{settingId}",
-        "definition": { "schema": { "$ref": "#/entities/Setting" }, "description": "Stores general settings." }
-      },
-      {
-        "path": "/integrations/settings/{integrationSettingId}",
-        "definition": { "schema": { "$ref": "#/entities/IntegrationSetting" }, "description": "Stores integration settings." }
-      },
-      {
-        "path": "/logs/{logId}",
-        "definition": { "schema": { "$ref": "#/entities/Log" }, "description": "Stores log entries." }
-      }
+      { "path": "/teams/{teamId}", "definition": { "schema": { "$ref": "#/entities/Team" }, "description": "Stores team information." } },
+      { "path": "/users/{userId}", "definition": { "schema": { "$ref": "#/entities/User" }, "description": "Stores user information." } },
+      { "path": "/contacts/{contactId}", "definition": { "schema": { "$ref": "#/entities/Contact" }, "description": "Stores contact information." } },
+      { "path": "/leads/{leadId}", "definition": { "schema": { "$ref": "#/entities/Lead" }, "description": "Stores lead information." } },
+      { "path": "/deals/{dealId}", "definition": { "schema": { "$ref": "#/entities/Deal" }, "description": "Stores deal information." } },
+      { "path": "/activities/{activityId}", "definition": { "schema": { "$ref": "#/entities/Activity" }, "description": "Stores activity information." } },
+      { "path": "/settings/navigation", "definition": { "schema": { "$ref": "#/entities/NavigationSetting" }, "description": "Stores role-based access control settings for the UI navigation." } },
+      { "path": "/settings/pipeline", "definition": { "schema": { "$ref": "#/entities/PipelineSetting" }, "description": "Stores the configuration for sales pipeline stages." } },
+      { "path": "/integrations/settings", "definition": { "schema": { "$ref": "#/entities/IntegrationSetting" }, "description": "Stores non-secret integration settings." } },
+      { "path": "/audit_logs/{logId}", "definition": { "schema": { "$ref": "#/entities/AuditLog" }, "description": "Stores immutable audit log entries." } }
     ],
     "reasoning": "This Firestore structure is designed to support a Greenlab CRM application. The entities cover all core aspects of a CRM: teams, users, contacts, leads, deals, and activities. It also includes settings for pipelines and integrations, and a collection for logs. For a public demo, security rules are temporarily relaxed to allow public read access, but the data model includes 'teamId' on relevant entities to facilitate a straightforward transition to a multi-tenant security model once user authentication is implemented. This structure avoids complex joins by keeping related data in separate top-level collections, which is efficient for Firestore queries."
   }
