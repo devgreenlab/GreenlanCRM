@@ -114,6 +114,13 @@
             "outboundWebhookUrl": { "type": "string", "format": "uri" }
           }
         },
+        "sumopod": {
+          "type": "object",
+          "properties": {
+            "apiKeyLast4": { "type": "string" },
+            "apiKeyRotatedAt": { "type": "string", "format": "date-time" }
+          }
+        },
         "secrets": {
           "type": "object",
           "properties": {
@@ -136,7 +143,7 @@
         "description": "Records significant events in the system for security and debugging.",
         "type": "object",
         "properties": {
-            "action": { "type": "string", "enum": ["SAVE_SETTINGS", "SET_WAHA_KEY", "CLEAR_WAHA_KEY", "TEST_WAHA_SUCCESS", "TEST_WAHA_FAIL"] },
+            "action": { "type": "string", "enum": ["SAVE_SETTINGS", "SET_WAHA_KEY", "CLEAR_WAHA_KEY", "TEST_WAHA_SUCCESS", "TEST_WAHA_FAIL", "SET_SUMOPOD_KEY", "CLEAR_SUMOPOD_KEY", "TEST_SUMOPOD_SUCCESS", "TEST_SUMOPOD_FAIL"] },
             "byUid": { "type": "string" },
             "at": { "type": "string", "format": "date-time" },
             "result": { "type": "string", "enum": ["SUCCESS", "FAIL"] },
