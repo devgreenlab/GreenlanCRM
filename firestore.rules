@@ -1,110 +1,132 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
+    // --- Helper Functions ---
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isSuperAdmin(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data.role == 'SUPER_ADMIN';
+    // Get the user's profile document from the 'users' collection
+    function getUserProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    function isUserInTeam(userId, teamId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data.teamId == teamId;
+    // Get the role from the user's profile, returns '' if not found
+    function getUserRole() {
+      return getUserProfile().data.get('role', '');
     }
 
-    function userRole() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    // Get the team ID from the user's profile
+    function getUserTeamId() {
+      return getUserProfile().data.get('teamId', null);
+    }
+    
+    // Check if the user is a Super Admin
+    function isSuperAdmin() {
+      return isSignedIn() && getUserRole() == 'SUPER_ADMIN';
     }
 
+    // --- Core Collections ---
     match /users/{userId} {
-      allow read: if isSignedIn();
-      // Only super admins can write to the users collection
-      allow write: if isSuperAdmin(request.auth.uid);
+      // Users can read their own profile. Super Admins can read any profile.
+      allow get: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+      // Any signed-in user can list users (needed for assigning leads etc.)
+      allow list: if isSignedIn();
+      // Only Super Admins can create/update users.
+      allow write: if isSuperAdmin();
     }
 
     match /teams/{teamId} {
-      // Allow read for any signed-in user
+      // Any signed-in user can read team data.
       allow read: if isSignedIn();
-      // Allow write only for Super Admins
-      allow write: if isSuperAdmin(request.auth.uid);
+      // Only Super Admins can create/update teams.
+      allow write: if isSuperAdmin();
     }
-    
+
+    // --- Settings & System Collections ---
     match /settings/{docId} {
-        // Only Super Admins can read or write any document in the settings collection
-        allow read, write: if isSuperAdmin(request.auth.uid);
+      // Only Super Admins can read or write any document in the settings collection.
+      allow read, write: if isSuperAdmin();
     }
 
     match /integrations/settings {
-        // Only Super Admins can read or write integration settings
-        allow read, write: if isSuperAdmin(request.auth.uid);
+      // Only Super Admins can read or write integration settings.
+      allow read, write: if isSuperAdmin();
     }
 
     match /integrations_secrets/{docId} {
-        // No client can ever read or write secrets. This must be done via a server endpoint.
-        allow read, write: if false;
+      // No client can ever read or write secrets. This must be done via a server endpoint.
+      allow read, write: if false;
     }
 
     match /audit_logs/{logId} {
-        // Only Super Admins can read logs
-        allow read: if isSuperAdmin(request.auth.uid);
-        // No one can write logs from the client. This must be done via a server endpoint.
-        allow write: if false;
-    }
-
-    match /activities/{activityId} {
-      // Only server can create/update/delete.
+      // Only Super Admins can read logs.
+      allow read: if isSuperAdmin();
+      // No one can write logs from the client. This must be done via a server endpoint.
       allow write: if false;
-      // Users can read activities if they are a super admin,
-      // or if the activity belongs to their team.
-      allow read: if isSignedIn() && (
-        isSuperAdmin(request.auth.uid) || isUserInTeam(request.auth.uid, resource.data.teamId)
-      );
     }
 
+    // --- CRM Data Collections ---
     match /contacts/{contactId} {
-      allow get: if isSignedIn() && (
-        isSuperAdmin(request.auth.uid) || isUserInTeam(request.auth.uid, resource.data.teamId)
-      );
-      allow list: if isSignedIn() && (
-        isSuperAdmin(request.auth.uid) || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamId != null
-      );
-      allow write: if isSignedIn() && (
-        isSuperAdmin(request.auth.uid) || isUserInTeam(request.auth.uid, request.resource.data.teamId)
-      );
+        // GET: Super Admin, or Head Sales/Sales from the same team.
+        allow get: if isSignedIn() && (
+            isSuperAdmin() ||
+            (resource.data.teamId == getUserTeamId())
+        );
+        // LIST: Super Admin can list all. Head Sales/Sales can list contacts if their client query constrains by their teamId.
+        allow list: if isSignedIn() && (isSuperAdmin() || getUserTeamId() != null);
+        // WRITE: Super Admin, or users creating/updating contacts for their own team.
+        allow write: if isSignedIn() && (
+            isSuperAdmin() ||
+            (request.resource.data.teamId == getUserTeamId())
+        );
     }
-
+    
     match /leads/{leadId} {
-      allow get: if isSignedIn() && (
-        isSuperAdmin(request.auth.uid) ||
-        (userRole() == 'HEAD_SALES' && isUserInTeam(request.auth.uid, resource.data.teamId)) ||
-        (userRole() == 'SALES' && resource.data.ownerUid == request.auth.uid)
-      );
-      allow list: if isSignedIn() && (
-        isSuperAdmin(request.auth.uid) ||
-        (userRole() == 'HEAD_SALES' && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamId != null) ||
-        userRole() == 'SALES'
-      );
-      allow write: if isSignedIn() && (
-        isSuperAdmin(request.auth.uid) || isUserInTeam(request.auth.uid, request.resource.data.teamId)
-      );
+        // GET: Super Admin, Head Sales of the team, or the specific Sales owner.
+        allow get: if isSignedIn() && (
+            isSuperAdmin() ||
+            (getUserRole() == 'HEAD_SALES' && resource.data.teamId == getUserTeamId()) ||
+            (getUserRole() == 'SALES' && resource.data.ownerUid == request.auth.uid)
+        );
+        // LIST: Allows role-based queries. Client MUST apply correct 'where' clauses.
+        allow list: if isSignedIn() && (isSuperAdmin() || getUserRole() in ['HEAD_SALES', 'SALES']);
+        // WRITE: Super Admin, or users creating/updating leads for their own team.
+        allow write: if isSignedIn() && (
+            isSuperAdmin() ||
+            (request.resource.data.teamId == getUserTeamId())
+        );
     }
 
     match /deals/{dealId} {
-      allow get: if isSignedIn() && (
-        isSuperAdmin(request.auth.uid) ||
-        (userRole() == 'HEAD_SALES' && isUserInTeam(request.auth.uid, resource.data.teamId)) ||
-        (userRole() == 'SALES' && resource.data.ownerUid == request.auth.uid)
-      );
-      allow list: if isSignedIn() && (
-        isSuperAdmin(request.auth.uid) ||
-        (userRole() == 'HEAD_SALES' && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamId != null) ||
-        userRole() == 'SALES'
-      );
-      allow write: if isSignedIn() && (
-        isSuperAdmin(request.auth.uid) || isUserInTeam(request.auth.uid, request.resource.data.teamId)
+        // GET: Super Admin, Head Sales of the team, or the specific Sales owner.
+        allow get: if isSignedIn() && (
+            isSuperAdmin() ||
+            (getUserRole() == 'HEAD_SALES' && resource.data.teamId == getUserTeamId()) ||
+            (getUserRole() == 'SALES' && resource.data.ownerUid == request.auth.uid)
+        );
+        // LIST: Allows role-based queries. Client MUST apply correct 'where' clauses.
+        allow list: if isSignedIn() && (isSuperAdmin() || getUserRole() in ['HEAD_SALES', 'SALES']);
+        // WRITE: Super Admin, or users creating/updating deals for their own team.
+        allow write: if isSignedIn() && (
+            isSuperAdmin() ||
+            (request.resource.data.teamId == getUserTeamId())
+        );
+    }
+
+    match /activities/{activityId} {
+      // Server-side writes only.
+      allow write: if false;
+
+      // READ: Super Admin, Head Sales of the team, or Sales who own the associated lead.
+      allow read: if isSignedIn() && (
+        isSuperAdmin() ||
+        (getUserRole() == 'HEAD_SALES' && resource.data.teamId == getUserTeamId()) ||
+        // Sales can read activities if they own the lead associated with it.
+        (getUserRole() == 'SALES' && get(/databases/$(database)/documents/leads/$(resource.data.leadId)).data.ownerUid == request.auth.uid)
       );
     }
   }
