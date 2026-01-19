@@ -35,15 +35,15 @@ import {
 
 const settingsFormSchema = z.object({
   waha: z.object({
-    baseUrl: z.string().url('Must be a valid URL (e.g., https://waha.example.com)'),
-    session: z.string().min(1, 'Session name is required'),
+    baseUrl: z.string().url('Must be a valid URL (e.g., https://waha.example.com)').or(z.literal('')),
+    session: z.string(),
   }),
   n8n: z.object({
-    inboundWebhookUrl: z.string().url('Must be a valid URL'),
-    outboundWebhookUrl: z.string().url('Must be a valid URL'),
+    inboundWebhookUrl: z.string().url('Must be a valid URL').or(z.literal('')),
+    outboundWebhookUrl: z.string().url('Must be a valid URL').or(z.literal('')),
   }),
   secrets: z.object({
-    crmWebhookSecret: z.string().min(8, 'Secret must be at least 8 characters'),
+    crmWebhookSecret: z.string(),
   }),
   flags: z.object({
     inboundEnabled: z.boolean(),
@@ -153,7 +153,7 @@ export default function IntegrasiPage() {
             throw new Error(err.error || 'Failed to save settings');
         }
         toast({ title: 'Success', description: 'Settings saved successfully.' });
-        fetchSettings();
+        await fetchSettings();
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error', description: error.message });
     } finally {
@@ -180,7 +180,7 @@ export default function IntegrasiPage() {
         }
         toast({ title: 'Success', description: 'WAHA API Key has been set.' });
         setWahaApiKey('');
-        fetchSettings(); // Refresh settings to show new metadata
+        await fetchSettings(); // Refresh settings to show new metadata
     } catch(error: any) {
          toast({ variant: 'destructive', title: 'Error', description: error.message });
     } finally {
@@ -197,7 +197,7 @@ export default function IntegrasiPage() {
             throw new Error(err.error || 'Failed to clear API key.');
         }
         toast({ title: 'Success', description: 'WAHA API Key has been cleared.' });
-        fetchSettings();
+        await fetchSettings();
     } catch(error: any) {
         toast({ variant: 'destructive', title: 'Error', description: error.message });
     }

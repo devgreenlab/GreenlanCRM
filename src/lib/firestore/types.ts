@@ -44,7 +44,7 @@ export type Lead = {
   lastMessagePreview?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
-  chatId: string; // The customer's whatsapp ID, e.g., 628...
+  chatId: string; // The customer's whatsapp ID, e.g., 628...@c.us
   wahaSession: string; // The WAHA session of the sales owner
 };
 
@@ -53,10 +53,10 @@ export type Deal = {
   leadId: string;
   ownerUid: string;
   teamId: string;
+  name: string;
   stage: "prospek" | "negosiasi" | "deal" | "produksi" | "selesai" | "lost";
   amount: number;
-  probability: number; // 0-1
-  nextActionAt: Timestamp;
+  closeDate: Timestamp;
   notes?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
@@ -68,7 +68,7 @@ export type Activity = {
   dealId?: string;
   teamId: string;
   actorUid: string; // userId who performed the action
-  type: "whatsapp_in" | "whatsapp_out" | "call" | "meeting" | "proposal_sent" | "follow_up" | "presentation";
+  type: "whatsapp_in" | "whatsapp_out" | "call" | "meeting";
   content: string;
   meta?: Record<string, any>;
   createdAt: Timestamp;

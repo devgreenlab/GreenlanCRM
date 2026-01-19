@@ -42,13 +42,13 @@ export async function POST(request: Request) {
         leadId = reqLeadId;
 
         if (!message || !leadId) {
-            throw new Error('Message and leadId are required.');
+            return NextResponse.json({ error: 'Message and leadId are required.' }, { status: 400 });
         }
 
         await createAuditLog({
             action: 'SEND_WA_ATTEMPT',
             byUid: userProfile.id,
-            result: 'SUCCESS',
+            result: 'SUCCESS', // Represents the attempt itself was valid
             message: `Attempting to send message to lead ${leadId}`
         });
 
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
         }
         const lead = leadDoc.data() as Lead;
         
-        // Security check: ensure user is allowed to message this lead
+        // 5. Security check: ensure user is allowed to message this lead
         if (userProfile.role === 'SALES' && lead.ownerUid !== userProfile.id) {
             throw new Error('You do not have permission to message this lead.');
         }
@@ -94,14 +94,14 @@ export async function POST(request: Request) {
             throw new Error('Lead is missing required WhatsApp information (session or chatId).');
         }
 
-        // 5. Call n8n webhook
+        // 6. Call n8n webhook
         await callN8nWebhook(
             settings.n8n.outboundWebhookUrl,
             settings.secrets.crmWebhookSecret,
             { leadId, chatId, text: message, session }
         );
 
-        // 6. Log activity and update lead on success
+        // 7. Log activity and update lead on success
         const batch = db.batch();
 
         const activityRef = db.collection(FIRESTORE_COLLECTIONS.activities).doc();

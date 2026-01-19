@@ -22,15 +22,14 @@ import { cn } from '@/lib/utils';
 
 
 function getInitials(name?: string, phone?: string) {
-    const targetName = name || phone || "Unknown";
-    if (targetName === "Unknown") return "U";
+    const targetName = name || phone;
+    if (!targetName) return "??";
     
-    return targetName
-      .split(' ')
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
+    const parts = targetName.split(' ');
+    if (parts.length > 1) {
+        return (parts[0][0] + (parts.pop() || '')[0]).toUpperCase();
+    }
+    return targetName.substring(0, 2).toUpperCase();
 }
 
 
@@ -107,10 +106,10 @@ function ChatWindow({ lead }: { lead: Lead | null }) {
 
   const activitiesQuery = useMemoFirebase(() => {
     if (!firestore || !lead) return null;
+    // NOTE: orderBy is removed to avoid needing a composite index for now. Sorting is done client-side.
     return query(
       collection(firestore, FIRESTORE_COLLECTIONS.activities),
       where('leadId', '==', lead.id)
-      // orderBy is removed to prevent index-related permission issues
     );
   }, [firestore, lead]);
 
@@ -270,6 +269,7 @@ export default function ObrolanPage() {
       return query(coll, baseFilter, where('ownerUid', '==', userProfile.id));
     }
 
+    // Return a query that is guaranteed to return no results if role is not covered.
     return query(coll, where('ownerUid', '==', 'user-has-no-permission'));
   }, [firestore, userProfile]);
 
@@ -291,8 +291,19 @@ export default function ObrolanPage() {
   }, [leads]);
   
   React.useEffect(() => {
+    // Automatically select the first lead in the sorted list if none is selected
     if (sortedLeads.length > 0 && !selectedLead) {
       setSelectedLead(sortedLeads[0]);
+    } else if (sortedLeads.length > 0 && selectedLead) {
+      // If a lead is already selected, check if it still exists in the new list.
+      // If not, select the first one again. This handles cases where filters change.
+      const selectedExists = sortedLeads.some(lead => lead.id === selectedLead.id);
+      if (!selectedExists) {
+        setSelectedLead(sortedLeads[0]);
+      }
+    } else if (sortedLeads.length === 0) {
+      // If there are no leads, clear the selection
+      setSelectedLead(null);
     }
   }, [sortedLeads, selectedLead]);
 

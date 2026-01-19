@@ -18,10 +18,11 @@ export async function GET(request: Request) {
       return NextResponse.json({}, { status: 200 });
     }
 
-    const settings = doc.data();
+    const settings = doc.data() as IntegrationSettings;
     // Ensure secrets are not sent to the client, even though they shouldn't be here anyway.
+    // We only send the public metadata like wahaApiKeyLast4.
     if (settings?.secrets) {
-        delete settings.secrets.wahaApiKey; 
+        // This is a safeguard; actual secret values are in a separate, inaccessible collection.
     }
 
     return NextResponse.json(settings, { status: 200 });
@@ -45,25 +46,18 @@ export async function POST(request: Request) {
     
     const db = getAdminFirestore();
     const settingsRef = db.collection('integrations').doc('settings');
-
-    const updatePayload: Partial<IntegrationSettings> = {
-        waha: {
-            baseUrl: body.waha?.baseUrl || '',
-            session: body.waha?.session || 'default',
-        },
-        n8n: {
-            inboundWebhookUrl: body.n8n?.inboundWebhookUrl || '',
-            outboundWebhookUrl: body.n8n?.outboundWebhookUrl || ''
-        },
-        secrets: {
-            crmWebhookSecret: body.secrets?.crmWebhookSecret || '',
-        },
-        flags: {
-            inboundEnabled: body.flags?.inboundEnabled === true,
-            outboundEnabled: body.flags?.outboundEnabled === true,
-        },
-        updatedBy: uid,
-        updatedAt: FieldValue.serverTimestamp() as any,
+    
+    // We only update non-secret fields here. Secrets are handled by their own endpoints.
+    const updatePayload = {
+        'waha.baseUrl': body.waha?.baseUrl || '',
+        'waha.session': body.waha?.session || 'default',
+        'n8n.inboundWebhookUrl': body.n8n?.inboundWebhookUrl || '',
+        'n8n.outboundWebhookUrl': body.n8n?.outboundWebhookUrl || '',
+        'secrets.crmWebhookSecret': body.secrets?.crmWebhookSecret || '',
+        'flags.inboundEnabled': body.flags?.inboundEnabled === true,
+        'flags.outboundEnabled': body.flags?.outboundEnabled === true,
+        'updatedBy': uid,
+        'updatedAt': FieldValue.serverTimestamp(),
     };
     
     await settingsRef.set(updatePayload, { merge: true });

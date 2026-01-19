@@ -96,6 +96,10 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
     if (role === 'SUPER_ADMIN') {
       form.setValue('teamId', null);
       form.setValue('wahaSession', '');
+      form.setValue('waNumber', '');
+    } else if (role === 'HEAD_SALES') {
+      form.setValue('wahaSession', '');
+      form.setValue('waNumber', '');
     }
   }, [role, form]);
 
@@ -103,12 +107,8 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
     if (!firestore) return;
 
     if (data.role === 'SUPER_ADMIN') {
-      const superAdminCount = allUsers.filter(u => u.role === 'SUPER_ADMIN').length;
-      
-      const isCreatingNewSuperAdmin = !user;
-      const isPromotingToSuperAdmin = user && user.role !== 'SUPER_ADMIN';
-
-      if ((isCreatingNewSuperAdmin || isPromotingToSuperAdmin) && superAdminCount >= 3) {
+      const superAdminCount = allUsers.filter(u => u.role === 'SUPER_ADMIN' && u.id !== user?.id).length;
+      if (superAdminCount >= 3) {
         toast({
           variant: 'destructive',
           title: 'Batas Super Admin Tercapai',
@@ -152,8 +152,6 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
         return;
       }
 
-      // This temporary Firebase app instance is used for user creation.
-      // It's a workaround to create a user without signing out the current admin.
       const tempAppName = `temp-user-creation-${Date.now()}`;
       const tempApp = initializeApp(firebaseConfig, tempAppName);
       const tempAuth = getAuth(tempApp);
@@ -273,7 +271,7 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
                             <Input placeholder="e.g., sales_john" {...field} value={field.value ?? ''}/>
                         </FormControl>
                          <FormDescription>
-                            The unique session name for this sales agent in WAHA.
+                            The unique session name for this sales agent in WAHA. This is required for routing messages.
                         </FormDescription>
                         <FormMessage />
                         </FormItem>

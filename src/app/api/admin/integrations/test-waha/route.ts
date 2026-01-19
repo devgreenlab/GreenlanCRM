@@ -6,10 +6,8 @@ import { getAdminFirestore } from '@/lib/server/firebase-admin';
 
 // In a real application, this would retrieve the key from a secure store like Google Secret Manager
 async function getWahaApiKey(): Promise<string | null> {
-    // !! SIMULATION !!
-    // This is a placeholder. In a real app, you would fetch this from a secure location.
-    // For this prototype, we'll read it from a Firestore doc that clients can't access.
-    // This is NOT a recommended production pattern for storing secrets.
+    // This is a placeholder for retrieving the secret from a secure, server-side location.
+    // For this prototype, we'll read it from a Firestore doc that clients can't access via security rules.
     try {
         const db = getAdminFirestore();
         const secretDoc = await db.collection('integrations_secrets').doc('waha').get();
@@ -79,9 +77,8 @@ export async function POST(request: Request) {
                 message,
             });
         }
-        if (error.status) {
-            return NextResponse.json({ success: false, error: message }, { status: error.status });
-        }
+        // Don't check for error.status here, as custom errors might not have it.
+        // The default is to return a 500 error.
         console.error('Error testing WAHA connection:', error);
         return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
