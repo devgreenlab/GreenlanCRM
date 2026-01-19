@@ -1,6 +1,5 @@
 import {
   Calculator,
-  Database,
   FileText,
   LayoutDashboard,
   ListFilter,
