@@ -63,16 +63,21 @@ export async function POST(request: Request) {
         const currentSettings = currentSettingsDoc.data() as Partial<IntegrationSettings> || {};
 
         const dataToSave: Partial<IntegrationSettings> = {
-            ...currentSettings, // Preserve existing fields like apiKey metadata
+            ...currentSettings, // Preserve existing fields
             waha: {
                 ...currentSettings.waha,
                 baseUrl: body.waha.baseUrl,
                 session: body.waha.session,
             },
             n8n: {
+                ...currentSettings.n8n,
                 outboundWebhookUrl: body.n8n.outboundWebhookUrl,
             },
+            sumopod: {
+                ...currentSettings.sumopod,
+            },
             secrets: {
+                ...currentSettings.secrets,
                 crmWebhookSecret: body.secrets.crmWebhookSecret,
             },
             flags: body.flags,

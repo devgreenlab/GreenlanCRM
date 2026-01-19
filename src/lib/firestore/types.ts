@@ -102,6 +102,10 @@ export type IntegrationSettings = {
   n8n: {
     outboundWebhookUrl: string;
   };
+  sumopod: {
+    apiKeyLast4?: string;
+    apiKeyRotatedAt?: Timestamp;
+  };
   secrets: {
     crmWebhookSecret: string;
   };
@@ -115,7 +119,16 @@ export type IntegrationSettings = {
 
 export type AuditLog = {
     id?: string;
-    action: "SAVE_SETTINGS" | "SET_WAHA_KEY" | "CLEAR_WAHA_KEY" | "TEST_WAHA_SUCCESS" | "TEST_WAHA_FAIL";
+    action: 
+      | "SAVE_SETTINGS" 
+      | "SET_WAHA_KEY" 
+      | "CLEAR_WAHA_KEY" 
+      | "TEST_WAHA_SUCCESS" 
+      | "TEST_WAHA_FAIL"
+      | "SET_SUMOPOD_KEY"
+      | "CLEAR_SUMOPOD_KEY"
+      | "TEST_SUMOPOD_SUCCESS"
+      | "TEST_SUMOPOD_FAIL";
     byUid: string;
     at: Timestamp;
     result: "SUCCESS" | "FAIL";

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
@@ -16,7 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { ShieldAlert, Power, PowerOff, KeyRound, Trash2, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { ShieldAlert, KeyRound, Trash2, Loader2, CheckCircle, XCircle } from 'lucide-react';
 
 const integrationSettingsSchema = z.object({
   waha: z.object({
@@ -37,7 +37,7 @@ const integrationSettingsSchema = z.object({
 
 type IntegrationSettingsFormValues = z.infer<typeof integrationSettingsSchema>;
 
-const wahaApiKeySchema = z.object({
+const apiKeySchema = z.object({
   apiKey: z.string().min(1, 'API Key is required.'),
 });
 
@@ -52,14 +52,17 @@ function PageSkeleton() {
 }
 
 export default function IntegrasiPage() {
-  const { userProfile, isLoading: isProfileLoading, error: profileError } = useUserProfile();
+  const { userProfile, isLoading: isProfileLoading } = useUserProfile();
   const { toast } = useToast();
   
   const [settings, setSettings] = React.useState<any>(null);
   const [isLoadingSettings, setIsLoadingSettings] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
-  const [isTesting, setIsTesting] = React.useState(false);
-  const [testResult, setTestResult] = React.useState<{ success: boolean; message: string } | null>(null);
+
+  const [isTestingWaha, setIsTestingWaha] = React.useState(false);
+  const [wahaTestResult, setWahaTestResult] = React.useState<{ success: boolean; message: string } | null>(null);
+  const [isTestingSumoPod, setIsTestingSumoPod] = React.useState(false);
+  const [sumoPodTestResult, setSumoPodTestResult] = React.useState<{ success: boolean; message: string } | null>(null);
 
   const form = useForm<IntegrationSettingsFormValues>({
     resolver: zodResolver(integrationSettingsSchema),
@@ -71,8 +74,13 @@ export default function IntegrasiPage() {
     },
   });
   
-  const apiKeyForm = useForm<{ apiKey: string }>({
-    resolver: zodResolver(wahaApiKeySchema),
+  const wahaApiKeyForm = useForm<{ apiKey: string }>({
+    resolver: zodResolver(apiKeySchema),
+    defaultValues: { apiKey: '' },
+  });
+
+  const sumoPodApiKeyForm = useForm<{ apiKey: string }>({
+    resolver: zodResolver(apiKeySchema),
     defaultValues: { apiKey: '' },
   });
 
@@ -115,7 +123,7 @@ export default function IntegrasiPage() {
         throw new Error(errorData.error || 'Failed to save settings');
       }
       toast({ title: 'Success', description: 'Integration settings saved successfully.' });
-      fetchSettings(); // Refresh settings
+      fetchSettings();
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error', description: error.message });
     } finally {
@@ -123,32 +131,18 @@ export default function IntegrasiPage() {
     }
   };
 
-  const handleSetWahaKey = async (data: { apiKey: string }) => {
+  const handleSetKey = async (service: 'waha' | 'sumopod', data: { apiKey: string }) => {
     setIsSaving(true);
     try {
-      const response = await fetch('/api/admin/integrations/waha-key', {
+      const response = await fetch(`/api/admin/integrations/${service}-key`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ apiKey: data.apiKey }),
       });
-      if (!response.ok) throw new Error('Failed to set WAHA API key');
-      toast({ title: 'Success', description: 'WAHA API Key has been set securely.' });
-      apiKeyForm.reset();
-      fetchSettings(); // Refresh to show updated metadata
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleClearWahaKey = async () => {
-    if (!confirm('Are you sure you want to clear the WAHA API Key? This action cannot be undone.')) return;
-    setIsSaving(true);
-    try {
-      const response = await fetch('/api/admin/integrations/waha-key', { method: 'DELETE' });
-      if (!response.ok) throw new Error('Failed to clear WAHA API key');
-      toast({ title: 'Success', description: 'WAHA API Key has been cleared.' });
+      if (!response.ok) throw new Error(`Failed to set ${service.toUpperCase()} API key`);
+      toast({ title: 'Success', description: `${service.toUpperCase()} API Key has been set securely.` });
+      if (service === 'waha') wahaApiKeyForm.reset();
+      if (service === 'sumopod') sumoPodApiKeyForm.reset();
       fetchSettings();
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Error', description: error.message });
@@ -157,22 +151,47 @@ export default function IntegrasiPage() {
     }
   };
   
-  const handleTestWaha = async () => {
-    setIsTesting(true);
-    setTestResult(null);
+  const handleClearKey = async (service: 'waha' | 'sumopod') => {
+    if (!confirm(`Are you sure you want to clear the ${service.toUpperCase()} API Key? This action cannot be undone.`)) return;
+    setIsSaving(true);
     try {
-        const response = await fetch('/api/admin/integrations/test-waha', { method: 'POST' });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Test failed');
-        setTestResult({ success: true, message: result.message });
-        toast({ title: 'Test Success', description: result.message });
+      const response = await fetch(`/api/admin/integrations/${service}-key`, { method: 'DELETE' });
+      if (!response.ok) throw new Error(`Failed to clear ${service.toUpperCase()} API key`);
+      toast({ title: 'Success', description: `${service.toUpperCase()} API Key has been cleared.` });
+      fetchSettings();
     } catch (error: any) {
-        setTestResult({ success: false, message: error.message });
-        toast({ variant: 'destructive', title: 'Test Failed', description: error.message });
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
     } finally {
-        setIsTesting(false);
+      setIsSaving(false);
     }
   };
+
+  const handleTestConnection = async (service: 'waha' | 'sumopod') => {
+    if (service === 'waha') setIsTestingWaha(true);
+    if (service === 'sumopod') setIsTestingSumoPod(true);
+    
+    if (service === 'waha') setWahaTestResult(null);
+    if (service === 'sumopod') setSumoPodTestResult(null);
+
+    try {
+        const response = await fetch(`/api/admin/integrations/test-${service}`, { method: 'POST' });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Test failed');
+        const testResult = { success: true, message: result.message };
+        if (service === 'waha') setWahaTestResult(testResult);
+        if (service === 'sumopod') setSumoPodTestResult(testResult);
+        toast({ title: 'Test Success', description: result.message });
+    } catch (error: any) {
+        const testResult = { success: false, message: error.message };
+        if (service === 'waha') setWahaTestResult(testResult);
+        if (service === 'sumopod') setSumoPodTestResult(testResult);
+        toast({ variant: 'destructive', title: 'Test Failed', description: error.message });
+    } finally {
+        if (service === 'waha') setIsTestingWaha(false);
+        if (service === 'sumopod') setIsTestingSumoPod(false);
+    }
+  };
+
 
   if (isProfileLoading || isLoadingSettings) {
     return <PageSkeleton />;
@@ -302,11 +321,11 @@ export default function IntegrasiPage() {
                 )}
             </div>
 
-            <Form {...apiKeyForm}>
-                <form onSubmit={apiKeyForm.handleSubmit(handleSetWahaKey)} className="flex items-end gap-2">
-                    <FormField name="apiKey" control={apiKeyForm.control} render={({ field }) => (
+            <Form {...wahaApiKeyForm}>
+                <form onSubmit={wahaApiKeyForm.handleSubmit((data) => handleSetKey('waha', data))} className="flex items-end gap-2">
+                    <FormField name="apiKey" control={wahaApiKeyForm.control} render={({ field }) => (
                         <FormItem className="flex-grow">
-                            <FormLabel>Set or Rotate API Key</FormLabel>
+                            <FormLabel>Set or Rotate WAHA API Key</FormLabel>
                             <FormControl><Input type="password" placeholder="Enter new WAHA API Key" {...field} /></FormControl>
                             <FormMessage />
                         </FormItem>
@@ -319,18 +338,77 @@ export default function IntegrasiPage() {
             
             <div className="flex items-center justify-between pt-4 border-t">
                 <div>
-                    <Button onClick={handleTestWaha} disabled={isTesting || !settings?.waha?.apiKeyLast4}>
-                        {isTesting ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Testing...</>) : 'Test WAHA Connection'}
+                    <Button onClick={() => handleTestConnection('waha')} disabled={isTestingWaha || !settings?.waha?.apiKeyLast4}>
+                        {isTestingWaha ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Testing...</>) : 'Test WAHA Connection'}
                     </Button>
-                    {testResult && (
-                        <div className={`flex items-center gap-2 mt-2 text-sm ${testResult.success ? 'text-green-600' : 'text-red-600'}`}>
-                            {testResult.success ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                            {testResult.message}
+                    {wahaTestResult && (
+                        <div className={`flex items-center gap-2 mt-2 text-sm ${wahaTestResult.success ? 'text-green-600' : 'text-red-600'}`}>
+                            {wahaTestResult.success ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                            {wahaTestResult.message}
                         </div>
                     )}
                 </div>
                 
-                <Button onClick={handleClearWahaKey} variant="destructive" disabled={isSaving || !settings?.waha?.apiKeyLast4}>
+                <Button onClick={() => handleClearKey('waha')} variant="destructive" disabled={isSaving || !settings?.waha?.apiKeyLast4}>
+                    <Trash2 className="mr-2 h-4 w-4" /> Clear Key
+                </Button>
+            </div>
+        </CardContent>
+      </Card>
+      
+      {/* SumoPod API Key Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle>SumoPod API Key Management</CardTitle>
+          <CardDescription>Securely set, rotate, or clear your SumoPod API Key.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+            <div className="flex items-center gap-4 p-4 border rounded-lg">
+                <KeyRound className="h-6 w-6 text-muted-foreground" />
+                <div>
+                    <div className="font-semibold">API Key Status</div>
+                    {settings?.sumopod?.apiKeyLast4 ? (
+                        <Badge variant="default" className="bg-green-600">Key is set (ends in ••••{settings.sumopod.apiKeyLast4})</Badge>
+                    ) : (
+                        <Badge variant="destructive">Key is not set</Badge>
+                    )}
+                </div>
+                {settings?.sumopod?.apiKeyRotatedAt && (
+                    <div className="text-sm text-muted-foreground ml-auto">
+                        Last updated: {format(new Date(settings.sumopod.apiKeyRotatedAt.seconds * 1000), 'PPp')}
+                    </div>
+                )}
+            </div>
+
+            <Form {...sumoPodApiKeyForm}>
+                <form onSubmit={sumoPodApiKeyForm.handleSubmit((data) => handleSetKey('sumopod', data))} className="flex items-end gap-2">
+                    <FormField name="apiKey" control={sumoPodApiKeyForm.control} render={({ field }) => (
+                        <FormItem className="flex-grow">
+                            <FormLabel>Set or Rotate SumoPod API Key</FormLabel>
+                            <FormControl><Input type="password" placeholder="Enter new SumoPod API Key" {...field} /></FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
+                    <Button type="submit" variant="secondary" disabled={isSaving}>
+                        {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Set Key'}
+                    </Button>
+                </form>
+            </Form>
+            
+            <div className="flex items-center justify-between pt-4 border-t">
+                <div>
+                    <Button onClick={() => handleTestConnection('sumopod')} disabled={isTestingSumoPod || !settings?.sumopod?.apiKeyLast4}>
+                        {isTestingSumoPod ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Testing...</>) : 'Test SumoPod Connection'}
+                    </Button>
+                    {sumoPodTestResult && (
+                        <div className={`flex items-center gap-2 mt-2 text-sm ${sumoPodTestResult.success ? 'text-green-600' : 'text-red-600'}`}>
+                            {sumoPodTestResult.success ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                            {sumoPodTestResult.message}
+                        </div>
+                    )}
+                </div>
+                
+                <Button onClick={() => handleClearKey('sumopod')} variant="destructive" disabled={isSaving || !settings?.sumopod?.apiKeyLast4}>
                     <Trash2 className="mr-2 h-4 w-4" /> Clear Key
                 </Button>
             </div>
