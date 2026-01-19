@@ -117,7 +117,17 @@ export type IntegrationSettings = {
 
 export type AuditLog = {
     id: string;
-    action: 'SAVE_INTEGRATION_SETTINGS' | 'SET_WAHA_KEY' | 'CLEAR_WAHA_KEY' | 'TEST_WAHA_CONNECTION' | 'SEND_WA_ATTEMPT' | 'SEND_WA_SUCCESS' | 'SEND_WA_FAIL';
+    action: 
+      | 'SAVE_INTEGRATION_SETTINGS' 
+      | 'SET_WAHA_KEY' 
+      | 'CLEAR_WAHA_KEY' 
+      | 'SEND_WA_ATTEMPT' 
+      | 'SEND_WA_SUCCESS' 
+      | 'SEND_WA_FAIL'
+      | 'WAHA_SESSION_START'
+      | 'WAHA_SESSION_STOP'
+      | 'WAHA_SESSION_LOGOUT'
+      | 'WAHA_SESSION_STATUS';
     byUid: string;
     at: Timestamp;
     result: 'SUCCESS' | 'FAILURE';

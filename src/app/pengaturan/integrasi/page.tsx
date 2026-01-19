@@ -18,7 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldAlert, CheckCircle, XCircle, Loader } from 'lucide-react';
+import { ShieldAlert, CheckCircle, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
@@ -90,7 +90,6 @@ export default function IntegrasiPage() {
   const [isFetching, setIsFetching] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isSettingKey, setIsSettingKey] = React.useState(false);
-  const [isTesting, setIsTesting] = React.useState(false);
 
   const [wahaApiKey, setWahaApiKey] = React.useState('');
 
@@ -200,32 +199,6 @@ export default function IntegrasiPage() {
         await fetchSettings();
     } catch(error: any) {
         toast({ variant: 'destructive', title: 'Error', description: error.message });
-    }
-  }
-
-  async function onTestWaha() {
-    setIsTesting(true);
-    try {
-        const headers = await getAuthHeader();
-        const response = await fetch('/api/admin/integrations/test-waha', { method: 'POST', headers });
-        const result = await response.json();
-        if (!response.ok || !result.success) {
-            throw new Error(result.error || 'Test failed.');
-        }
-        toast({
-            title: 'Connection Successful',
-            description: 'Successfully connected to WAHA.',
-            action: <CheckCircle className="text-green-500" />
-        });
-    } catch (error: any) {
-         toast({
-            variant: 'destructive',
-            title: 'Connection Failed',
-            description: error.message,
-            action: <XCircle className="text-white" />
-        });
-    } finally {
-        setIsTesting(false);
     }
   }
 
@@ -383,14 +356,6 @@ export default function IntegrasiPage() {
                     </Button>
                 </div>
             </div>
-
-             <div className="pt-4">
-                <Button onClick={onTestWaha} variant="outline" disabled={isTesting || !settings.secrets?.wahaApiKeyLast4}>
-                    {isTesting && <Loader className="mr-2 h-4 w-4 animate-spin" />}
-                    {isTesting ? 'Testing...' : 'Test WAHA Connection'}
-                </Button>
-             </div>
-
         </CardContent>
       </Card>
     </div>

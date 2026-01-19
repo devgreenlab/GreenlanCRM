@@ -5,6 +5,12 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { useUserProfile } from '@/hooks/use-user-profile';
 import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
 import type { UserProfile } from '@/lib/firestore/types';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 import {
   Card,
@@ -28,6 +34,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ShieldAlert, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/shared/empty-state';
+import { SessionManagerDialog } from '@/components/admin/sales/session-manager-dialog';
 
 // State to manage input fields for each user
 type SalesConfigState = {
@@ -54,6 +61,7 @@ function PageSkeleton() {
                             <Skeleton className="h-10 w-[200px]" />
                             <Skeleton className="h-10 w-[200px]" />
                             <Skeleton className="h-10 w-[80px]" />
+                             <Skeleton className="h-10 w-[120px]" />
                         </div>
                     ))}
                 </div>
@@ -68,6 +76,9 @@ export default function SalesConfigPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
+  const [isManagerOpen, setIsManagerOpen] = React.useState(false);
+  const [selectedUser, setSelectedUser] = React.useState<UserProfile | null>(null);
+
   const salesUsersQuery = useMemoFirebase(
     () =>
       firestore
@@ -81,7 +92,6 @@ export default function SalesConfigPage() {
   const [configs, setConfigs] = React.useState<SalesConfigState>({});
   const [savingStates, setSavingStates] = React.useState<{[userId: string]: boolean}>({});
 
-  // Initialize or update local state when users are fetched
   React.useEffect(() => {
     if (salesUsers) {
       const initialConfigs = salesUsers.reduce((acc, user) => {
@@ -138,6 +148,19 @@ export default function SalesConfigPage() {
     }
   };
 
+  const handleManageSession = (user: UserProfile) => {
+    if (!user.wahaSession) {
+        toast({
+            variant: 'destructive',
+            title: 'Sesi Belum Diatur',
+            description: 'Harap atur dan simpan nama sesi WAHA terlebih dahulu.',
+        });
+        return;
+    }
+    setSelectedUser(user);
+    setIsManagerOpen(true);
+  };
+  
   const isLoading = isProfileLoading || isLoadingUsers;
 
   if (isLoading) {
@@ -155,68 +178,86 @@ export default function SalesConfigPage() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Sales Agent Configuration</CardTitle>
-        <CardDescription>
-          Assign a unique WAHA session and display number to each sales agent for WhatsApp message routing.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {(!salesUsers || salesUsers.length === 0) ? (
-            <EmptyState
-                icon={Users}
-                title="No Sales Agents Found"
-                description="Create users with the 'SALES' role to configure them here."
-            />
-        ) : (
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Agent Name</TableHead>
-                <TableHead>WAHA Session</TableHead>
-                <TableHead>WhatsApp Number</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {salesUsers.map(user => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">
-                    <div>{user.name}</div>
-                    <div className="text-sm text-muted-foreground">{user.email}</div>
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={configs[user.id]?.wahaSession || ''}
-                      onChange={e => handleInputChange(user.id, 'wahaSession', e.target.value)}
-                      placeholder="e.g., sales_agent_1"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Input
-                      value={configs[user.id]?.waNumber || ''}
-                      onChange={e => handleInputChange(user.id, 'waNumber', e.target.value)}
-                      placeholder="e.g., 628123456789"
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button 
-                        size="sm" 
-                        onClick={() => handleSaveChanges(user.id)}
-                        disabled={savingStates[user.id]}
-                    >
-                      {savingStates[user.id] ? 'Saving...' : 'Save'}
-                    </Button>
-                  </TableCell>
+    <Dialog open={isManagerOpen} onOpenChange={setIsManagerOpen}>
+        <Card>
+        <CardHeader>
+            <CardTitle>Sales Agent Configuration</CardTitle>
+            <CardDescription>
+            Assign a unique WAHA session and display number to each sales agent for WhatsApp message routing.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+            {(!salesUsers || salesUsers.length === 0) ? (
+                <EmptyState
+                    icon={Users}
+                    title="No Sales Agents Found"
+                    description="Create users with the 'SALES' role to configure them here."
+                />
+            ) : (
+            <div className="rounded-lg border">
+            <Table>
+                <TableHeader>
+                <TableRow>
+                    <TableHead>Agent Name</TableHead>
+                    <TableHead>WAHA Session</TableHead>
+                    <TableHead>WhatsApp Number</TableHead>
+                    <TableHead className="text-right">Save Config</TableHead>
+                    <TableHead className="text-right">Manage Session</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-        )}
-      </CardContent>
-    </Card>
+                </TableHeader>
+                <TableBody>
+                {salesUsers.map(user => (
+                    <TableRow key={user.id}>
+                    <TableCell className="font-medium">
+                        <div>{user.name}</div>
+                        <div className="text-sm text-muted-foreground">{user.email}</div>
+                    </TableCell>
+                    <TableCell>
+                        <Input
+                        value={configs[user.id]?.wahaSession || ''}
+                        onChange={e => handleInputChange(user.id, 'wahaSession', e.target.value)}
+                        placeholder="e.g., sales_agent_1"
+                        />
+                    </TableCell>
+                    <TableCell>
+                        <Input
+                        value={configs[user.id]?.waNumber || ''}
+                        onChange={e => handleInputChange(user.id, 'waNumber', e.target.value)}
+                        placeholder="e.g., 628123456789"
+                        />
+                    </TableCell>
+                    <TableCell className="text-right">
+                        <Button 
+                            size="sm" 
+                            onClick={() => handleSaveChanges(user.id)}
+                            disabled={savingStates[user.id]}
+                        >
+                        {savingStates[user.id] ? 'Saving...' : 'Save'}
+                        </Button>
+                    </TableCell>
+                     <TableCell className="text-right">
+                        <Button 
+                            variant="outline"
+                            size="sm" 
+                            onClick={() => handleManageSession(user)}
+                        >
+                            Kelola Sesi
+                        </Button>
+                    </TableCell>
+                    </TableRow>
+                ))}
+                </TableBody>
+            </Table>
+            </div>
+            )}
+        </CardContent>
+        </Card>
+         <DialogContent className="max-w-md">
+            <DialogHeader>
+                <DialogTitle>Kelola Sesi: {selectedUser?.name}</DialogTitle>
+            </DialogHeader>
+            {selectedUser && <SessionManagerDialog user={selectedUser} />}
+        </DialogContent>
+    </Dialog>
   );
 }
