@@ -21,6 +21,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LanguageToggle } from './language-toggle';
+import { ThemeToggle } from './theme-toggle';
 
 
 export function Header() {
@@ -68,6 +69,7 @@ export function Header() {
 
       <div className="flex items-center gap-2">
         <LanguageToggle />
+        <ThemeToggle />
         <Button variant="ghost" size="icon" className="rounded-full">
           <Bell className="h-5 w-5" />
           <span className="sr-only">Toggle notifications</span>
