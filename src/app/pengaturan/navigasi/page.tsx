@@ -8,8 +8,7 @@ import type { NavigationSettings, RoleAccess } from '@/lib/firestore/types';
 import { MENU_ITEMS } from '@/lib/menu-items';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { ErrorState } from '@/components/shared/error-state';
@@ -149,7 +148,7 @@ export default function NavigasiPage() {
       <CardHeader>
         <CardTitle>Pengaturan Navigasi</CardTitle>
         <CardDescription>
-          Atur item menu mana yang dapat dilihat oleh setiap peran. Super Admin selalu memiliki akses ke semua menu.
+          Centang item menu mana yang dapat dilihat oleh setiap peran. Super Admin selalu memiliki akses ke semua menu.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -165,17 +164,19 @@ export default function NavigasiPage() {
               <div className="flex items-center px-4 py-2 hover:bg-muted/50 rounded-md">
                 <div className="flex-1 font-medium">{item.title}</div>
                 <div className="w-24 flex justify-center">
-                  <Switch
+                  <Checkbox
                     checked={roleAccess.HEAD_SALES.includes(item.key)}
                     onCheckedChange={() => handleToggle('HEAD_SALES', item.key, false)}
                     aria-label={`Toggle ${item.title} for Head Sales`}
+                    id={`hs-main-${item.key}`}
                   />
                 </div>
                 <div className="w-24 flex justify-center">
-                  <Switch
+                  <Checkbox
                     checked={roleAccess.SALES.includes(item.key)}
                     onCheckedChange={() => handleToggle('SALES', item.key, false)}
                     aria-label={`Toggle ${item.title} for Sales`}
+                    id={`s-main-${item.key}`}
                   />
                 </div>
               </div>
@@ -185,17 +186,19 @@ export default function NavigasiPage() {
                     <div key={subItem.key} className="flex items-center pr-4 py-2 hover:bg-muted/50 rounded-md">
                       <div className="flex-1 text-muted-foreground">{subItem.title}</div>
                       <div className="w-24 flex justify-center">
-                        <Switch
+                        <Checkbox
                           checked={roleAccess.HEAD_SALES.includes(subItem.key)}
                           onCheckedChange={() => handleToggle('HEAD_SALES', subItem.key, true)}
                           aria-label={`Toggle ${subItem.title} for Head Sales`}
+                          id={`hs-sub-${subItem.key}`}
                         />
                       </div>
                       <div className="w-24 flex justify-center">
-                        <Switch
+                        <Checkbox
                           checked={roleAccess.SALES.includes(subItem.key)}
                           onCheckedChange={() => handleToggle('SALES', subItem.key, true)}
                           aria-label={`Toggle ${subItem.title} for Sales`}
+                          id={`s-sub-${subItem.key}`}
                         />
                       </div>
                     </div>
