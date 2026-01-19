@@ -87,7 +87,8 @@
         "contactId": { "type": "string", "description": "Reference to Contact. (Relationship: Contact 1:N Lead)" },
         "source": { "type": "string", "description": "Source of the lead (e.g., website, referral, advertisement)." },
         "stage": { "type": "string", "description": "Current stage of the lead in the sales pipeline (e.g., prospect, qualified, demo, proposal, closed)." },
-        "priority": { "type": "string", "description": "Priority of the lead (e.g. high, medium, low)." }
+        "priority": { "type": "string", "description": "Priority of the lead (e.g. high, medium, low)." },
+        "lastOutboundAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "teamId", "contactId", "source", "stage"]
     },
@@ -169,7 +170,7 @@
         "type": "object",
         "description": "Records important actions performed by users, especially admins.",
         "properties": {
-            "action": { "type": "string", "enum": ["SAVE_INTEGRATION_SETTINGS", "SET_WAHA_KEY", "CLEAR_WAHA_KEY", "TEST_WAHA_CONNECTION"] },
+            "action": { "type": "string", "enum": ["SAVE_INTEGRATION_SETTINGS", "SET_WAHA_KEY", "CLEAR_WAHA_KEY", "TEST_WAHA_CONNECTION", "SEND_WA_ATTEMPT", "SEND_WA_SUCCESS", "SEND_WA_FAIL"] },
             "byUid": { "type": "string", "description": "The UID of the user who performed the action." },
             "at": { "type": "string", "format": "date-time" },
             "result": { "type": "string", "enum": ["SUCCESS", "FAILURE"] },

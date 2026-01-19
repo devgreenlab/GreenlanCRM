@@ -42,6 +42,7 @@ export type Lead = {
   stage: string;
   lastInboundAt: Timestamp;
   lastMessagePreview: string;
+  lastOutboundAt?: Timestamp;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 };
@@ -113,7 +114,7 @@ export type IntegrationSettings = {
 
 export type AuditLog = {
     id: string;
-    action: 'SAVE_INTEGRATION_SETTINGS' | 'SET_WAHA_KEY' | 'CLEAR_WAHA_KEY' | 'TEST_WAHA_CONNECTION';
+    action: 'SAVE_INTEGRATION_SETTINGS' | 'SET_WAHA_KEY' | 'CLEAR_WAHA_KEY' | 'TEST_WAHA_CONNECTION' | 'SEND_WA_ATTEMPT' | 'SEND_WA_SUCCESS' | 'SEND_WA_FAIL';
     byUid: string;
     at: Timestamp;
     result: 'SUCCESS' | 'FAILURE';

@@ -1,7 +1,8 @@
 // src/lib/server/auth-utils.ts
 import { getAdminAuth, getAdminFirestore } from './firebase-admin';
+import type { UserProfile } from '../firestore/types';
 
-class AuthError extends Error {
+export class AuthError extends Error {
     status: number;
     constructor(message: string, status: number) {
         super(message);
@@ -10,13 +11,7 @@ class AuthError extends Error {
     }
 }
 
-/**
- * Verifies the Firebase Auth ID token from an incoming request and checks if the user is a SUPER_ADMIN.
- * Throws an AuthError if authentication or authorization fails.
- * @param request The incoming Request object.
- * @returns {Promise<{uid: string}>} The UID of the verified Super Admin.
- */
-export async function verifySuperAdmin(request: Request): Promise<{ uid: string }> {
+async function verifyTokenAndGetUser(request: Request): Promise<{ uid: string }> {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         throw new AuthError('Unauthorized: Missing or invalid Authorization header.', 401);
@@ -27,15 +22,25 @@ export async function verifySuperAdmin(request: Request): Promise<{ uid: string 
         throw new AuthError('Unauthorized: Token is missing.', 401);
     }
 
-    let decodedToken;
     try {
-        decodedToken = await getAdminAuth().verifyIdToken(idToken);
+        const decodedToken = await getAdminAuth().verifyIdToken(idToken);
+        return { uid: decodedToken.uid };
     } catch (error) {
         console.error("Token verification failed:", error);
         throw new AuthError('Forbidden: Invalid authentication token.', 403);
     }
+}
 
-    const uid = decodedToken.uid;
+
+/**
+ * Verifies the Firebase Auth ID token from an incoming request and checks if the user is a SUPER_ADMIN.
+ * Throws an AuthError if authentication or authorization fails.
+ * @param request The incoming Request object.
+ * @returns {Promise<{uid: string}>} The UID of the verified Super Admin.
+ */
+export async function verifySuperAdmin(request: Request): Promise<{ uid: string }> {
+    const { uid } = await verifyTokenAndGetUser(request);
+
     const db = getAdminFirestore();
     const userDoc = await db.collection('users').doc(uid).get();
 
@@ -44,4 +49,33 @@ export async function verifySuperAdmin(request: Request): Promise<{ uid: string 
     }
 
     return { uid };
+}
+
+/**
+ * Verifies the Firebase Auth ID token and checks if the user has one of the allowed roles.
+ * @param request The incoming Request object.
+ * @param allowedRoles An array of roles that are allowed to access the endpoint.
+ * @returns {Promise<UserProfile>} The full user profile of the authenticated user.
+ */
+export async function verifyAuthenticatedUser(request: Request, allowedRoles: UserProfile['role'][]): Promise<UserProfile> {
+    const { uid } = await verifyTokenAndGetUser(request);
+    
+    const db = getAdminFirestore();
+    const userDocSnap = await db.collection('users').doc(uid).get();
+
+    if (!userDocSnap.exists) {
+         throw new AuthError('Forbidden: User profile not found.', 403);
+    }
+    
+    const userProfile = { id: userDocSnap.id, ...userDocSnap.data() } as UserProfile;
+
+    if (!userProfile.isActive) {
+        throw new AuthError('Forbidden: User account is inactive.', 403);
+    }
+
+    if (!allowedRoles.includes(userProfile.role)) {
+        throw new AuthError(`Forbidden: User does not have one of the required roles (${allowedRoles.join(', ')}).`, 403);
+    }
+
+    return userProfile;
 }
