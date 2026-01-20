@@ -1,13 +1,13 @@
 // src/app/api/webhooks/waha/route.ts
 import { NextResponse } from 'next/server';
-import { getAdminFirestore } from '@/lib/server/firebase-admin';
+import { getAdminServices } from '@/lib/firebase/server-app';
 import { FieldValue, Timestamp, query, where, limit } from 'firebase-admin/firestore';
 import type { Lead, UserProfile } from '@/lib/firestore/types';
 
 // This is a simplified, non-secure way to verify webhooks for this prototype.
 // In production, use a more robust method like HMAC signature verification.
 async function verifyWebhookSecret(request: Request): Promise<boolean> {
-    const db = getAdminFirestore();
+    const { firestore: db } = getAdminServices();
     const settingsDoc = await db.collection('integrations').doc('settings').get();
     const storedSecret = settingsDoc.data()?.secrets?.crmWebhookSecret;
     
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
              return NextResponse.json({ error: 'Missing required fields in payload.' }, { status: 400 });
         }
 
-        const db = getAdminFirestore();
+        const { firestore: db } = getAdminServices();
         const batch = db.batch();
 
         // 3. Find the sales agent by their WAHA session
@@ -124,5 +124,3 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
-
-    

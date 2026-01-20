@@ -4,14 +4,14 @@
 import { NextResponse } from 'next/server';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { verifyAuthenticatedUser } from '@/lib/server/auth-utils';
-import { getAdminFirestore } from '@/lib/server/firebase-admin';
+import { getAdminServices } from '@/lib/firebase/server-app';
 import { createAuditLog } from '@/lib/server/audit';
 import type { IntegrationSettings, Lead, UserProfile, Message } from '@/lib/firestore/types';
 import { decrypt } from '@/lib/server/crypto';
 
 
 async function getWahaConfig() {
-    const db = getAdminFirestore();
+    const { firestore: db } = getAdminServices();
     const settingsDoc = await db.collection('integrations').doc('settings').get();
     const settings = settingsDoc.data() as IntegrationSettings;
     if (!settings?.waha?.baseUrl) {
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
         }
 
         // 2. Fetch Lead to get session and chatId
-        const db = getAdminFirestore();
+        const { firestore: db } = getAdminServices();
         const leadRef = db.collection('leads').doc(leadId);
         const leadDoc = await leadRef.get();
         if (!leadDoc.exists) {
@@ -153,5 +153,3 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: false, error: error.message }, { status });
     }
 }
-
-    

@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { verifySuperAdmin } from '@/lib/server/auth-utils';
-import { getAdminFirestore } from '@/lib/server/firebase-admin';
+import { getAdminServices } from '@/lib/firebase/server-app';
 import { createAuditLog } from '@/lib/server/audit';
 import type { IntegrationSettings } from '@/lib/firestore/types';
 
@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   try {
     await verifySuperAdmin(request);
     
-    const db = getAdminFirestore();
+    const { firestore: db } = getAdminServices();
     const settingsRef = db.collection('integrations').doc('settings');
     const doc = await settingsRef.get();
 
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     
-    const db = getAdminFirestore();
+    const { firestore: db } = getAdminServices();
     const settingsRef = db.collection('integrations').doc('settings');
     const doc = await settingsRef.get();
     const currentData = doc.exists ? doc.data() : {};

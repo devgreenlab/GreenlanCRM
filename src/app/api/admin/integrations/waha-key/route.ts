@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { verifySuperAdmin } from '@/lib/server/auth-utils';
-import { getAdminFirestore } from '@/lib/server/firebase-admin';
+import { getAdminServices } from '@/lib/firebase/server-app';
 import { createAuditLog } from '@/lib/server/audit';
 import { encrypt, decrypt } from '@/lib/server/crypto';
 
@@ -10,7 +10,7 @@ import { encrypt, decrypt } from '@/lib/server/crypto';
 async function saveWahaApiKey(apiKey: string): Promise<void> {
     try {
         const encryptedKey = encrypt(apiKey);
-        const db = getAdminFirestore();
+        const { firestore: db } = getAdminServices();
         // The `integrations_secrets` collection has Firestore rules blocking all client access.
         await db.collection('integrations_secrets').doc('waha').set({ apiKey: encryptedKey });
     } catch(e) {
@@ -22,7 +22,7 @@ async function saveWahaApiKey(apiKey: string): Promise<void> {
 // This function deletes the key from the secure store.
 async function deleteWahaApiKey(): Promise<void> {
     try {
-        const db = getAdminFirestore();
+        const { firestore: db } = getAdminServices();
         await db.collection('integrations_secrets').doc('waha').delete();
     } catch(e) {
         console.error("Could not delete WAHA API Key:", e);
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
         await saveWahaApiKey(apiKey);
 
         // 2. Update public metadata in the main settings document
-        const db = getAdminFirestore();
+        const { firestore: db } = getAdminServices();
         const settingsRef = db.collection('integrations').doc('settings');
 
         await settingsRef.set({
@@ -100,7 +100,7 @@ export async function DELETE(request: Request) {
         await deleteWahaApiKey();
 
         // 2. Update the public metadata by removing the fields
-        const db = getAdminFirestore();
+        const { firestore: db } = getAdminServices();
         const settingsRef = db.collection('integrations').doc('settings');
 
         const metadataUpdate = {
@@ -137,5 +137,3 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
-
-    

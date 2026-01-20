@@ -1,5 +1,5 @@
 // src/lib/server/auth-utils.ts
-import { getAdminAuth, getAdminFirestore } from './firebase-admin';
+import { getAdminServices } from '@/lib/firebase/server-app';
 import type { UserProfile } from '../firestore/types';
 
 export class AuthError extends Error {
@@ -23,7 +23,7 @@ async function verifyTokenAndGetUser(request: Request): Promise<{ uid: string }>
     }
 
     try {
-        const decodedToken = await getAdminAuth().verifyIdToken(idToken);
+        const decodedToken = await getAdminServices().auth.verifyIdToken(idToken);
         return { uid: decodedToken.uid };
     } catch (error) {
         console.error("Token verification failed:", error);
@@ -41,7 +41,7 @@ async function verifyTokenAndGetUser(request: Request): Promise<{ uid: string }>
 export async function verifySuperAdmin(request: Request): Promise<{ uid: string }> {
     const { uid } = await verifyTokenAndGetUser(request);
 
-    const db = getAdminFirestore();
+    const db = getAdminServices().firestore;
     const userDoc = await db.collection('users').doc(uid).get();
 
     if (!userDoc.exists || userDoc.data()?.role !== 'SUPER_ADMIN') {
@@ -60,7 +60,7 @@ export async function verifySuperAdmin(request: Request): Promise<{ uid: string 
 export async function verifyAuthenticatedUser(request: Request, allowedRoles: UserProfile['role'][]): Promise<UserProfile> {
     const { uid } = await verifyTokenAndGetUser(request);
     
-    const db = getAdminFirestore();
+    const db = getAdminServices().firestore;
     const userDocSnap = await db.collection('users').doc(uid).get();
 
     if (!userDocSnap.exists) {
@@ -79,5 +79,3 @@ export async function verifyAuthenticatedUser(request: Request, allowedRoles: Us
 
     return userProfile;
 }
-
-    

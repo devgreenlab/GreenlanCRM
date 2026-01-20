@@ -2,11 +2,11 @@
 import { NextResponse } from 'next/server';
 import { verifySuperAdmin } from '@/lib/server/auth-utils';
 import { createAuditLog } from '@/lib/server/audit';
-import { getAdminFirestore } from '@/lib/server/firebase-admin';
+import { getAdminServices } from '@/lib/firebase/server-app';
 import { decrypt } from '@/lib/server/crypto';
 
 async function getWahaConfig() {
-    const db = getAdminFirestore();
+    const { firestore: db } = getAdminServices();
     const settingsDoc = await db.collection('integrations').doc('settings').get();
     const settings = settingsDoc.data();
 
@@ -91,5 +91,3 @@ export async function GET(request: Request) {
         return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }
-
-    

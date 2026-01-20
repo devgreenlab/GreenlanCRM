@@ -1,16 +1,25 @@
-import { getApps, initializeApp, getApp } from 'firebase-admin/app';
+import { getApps, initializeApp, getApp, App } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { getFunctions } from 'firebase-admin/functions';
+import { firebaseConfig } from '@/firebase/config';
 
-// Firebase App Hosting provides environment variables to automatically initialize 
-// the Admin SDK without needing a service account file. `initializeApp()` will
-// automatically use these credentials.
-const app = getApps().length > 0 ? getApp() : initializeApp();
+function getAdminApp(): App {
+  if (getApps().length > 0) {
+    return getApp();
+  }
 
-// A helper function to get the Firebase services
-export const getAuthenticatedAppForUser = () => {
+  // Explicitly initialize with the client-side project ID to prevent
+  // token validation errors caused by project mismatch, especially in local dev.
+  return initializeApp({
+    projectId: firebaseConfig.projectId,
+  });
+}
+
+// A helper function to get the Firebase admin services
+export const getAdminServices = () => {
+  const app = getAdminApp();
   return {
     app,
     auth: getAuth(app),

@@ -1,6 +1,6 @@
 // src/lib/server/audit.ts
 import { FieldValue } from 'firebase-admin/firestore';
-import { getAdminFirestore } from './firebase-admin';
+import { getAdminServices } from '@/lib/firebase/server-app';
 import { FIRESTORE_COLLECTIONS } from '../firestore/collections';
 import type { AuditLog } from '../firestore/types';
 
@@ -10,7 +10,7 @@ import type { AuditLog } from '../firestore/types';
  */
 export async function createAuditLog(payload: Omit<AuditLog, 'id' | 'at'>): Promise<void> {
     try {
-        const db = getAdminFirestore();
+        const { firestore: db } = getAdminServices();
         const logRef = db.collection(FIRESTORE_COLLECTIONS.auditLogs).doc();
         
         await logRef.set({
@@ -23,5 +23,3 @@ export async function createAuditLog(payload: Omit<AuditLog, 'id' | 'at'>): Prom
         // Logging the failure is sufficient.
     }
 }
-
-    
