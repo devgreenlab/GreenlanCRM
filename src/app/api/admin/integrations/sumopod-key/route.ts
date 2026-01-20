@@ -1,20 +1,16 @@
 import { NextResponse } from 'next/server';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { getAuthenticatedAppForUser } from '@/lib/firebase/server-app';
+import { FieldValue } from 'firebase-admin/firestore';
+import { verifySuperAdmin } from '@/lib/server/auth-utils';
+import { getAdminServices } from '@/lib/firebase/server-app';
 import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
-import { createAuditLog } from '@/lib/firestore/audit';
+import { createAuditLog } from '@/lib/server/audit';
+
 // In a real scenario, you'd import from '@google-cloud/secret-manager'
 // For this example, we'll simulate the behavior.
 // import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 
 // const secretManager = new SecretManagerServiceClient();
 const SECRET_NAME = `projects/${process.env.GCP_PROJECT_ID}/secrets/sumopod_api_key/versions/latest`;
-
-async function checkSuperAdmin(auth: any) {
-    if (!auth.currentUser) return false;
-    const userDoc = await getDoc(doc(getAuthenticatedAppForUser().firestore, FIRESTORE_COLLECTIONS.users, auth.currentUser.uid));
-    return userDoc.exists() && userDoc.data().role === 'SUPER_ADMIN';
-}
 
 // SIMULATED Secret Manager function
 async function saveSecret(key: string): Promise<void> {
@@ -36,17 +32,10 @@ async function deleteSecret(): Promise<void> {
 
 
 export async function POST(request: Request) {
-    const { auth } = getAuthenticatedAppForUser();
-    const uid = auth.currentUser?.uid;
-
-    if (!uid) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    let userUid: string;
     try {
-        if (!(await checkSuperAdmin(auth))) {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-        }
+        const { uid } = await verifySuperAdmin(request);
+        userUid = uid;
 
         const { apiKey } = await request.json();
         if (!apiKey || typeof apiKey !== 'string') {
@@ -57,17 +46,19 @@ export async function POST(request: Request) {
         await saveSecret(apiKey);
 
         // Update the non-secret metadata in Firestore
-        const settingsRef = doc(getAuthenticatedAppForUser().firestore, FIRESTORE_COLLECTIONS.integrationSettings);
-        await setDoc(settingsRef, {
-            sumopod: {
-                apiKeyLast4: apiKey.slice(-4),
-                apiKeyRotatedAt: serverTimestamp(),
+        const { firestore } = getAdminServices();
+        const settingsRef = firestore.collection('integrations').doc('settings');
+
+        await settingsRef.set({
+            secrets: {
+                sumopodApiKeyLast4: apiKey.slice(-4),
+                sumopodApiKeyRotatedAt: FieldValue.serverTimestamp(),
             }
         }, { merge: true });
         
         await createAuditLog({
             action: 'SET_SUMOPOD_KEY',
-            byUid: uid,
+            byUid: userUid,
             result: 'SUCCESS',
             message: 'SumoPod API Key was set/rotated.',
         });
@@ -75,46 +66,47 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: 'SumoPod API Key set successfully' });
 
     } catch (e: any) {
+        const message = e.message || 'An unknown error occurred.';
+        if (userUid) {
+            await createAuditLog({
+                action: 'SET_SUMOPOD_KEY',
+                byUid: userUid,
+                result: 'FAILURE',
+                message,
+            });
+        }
+        if (e.status) {
+          return NextResponse.json({ error: message }, { status: e.status });
+        }
         console.error('Error setting SumoPod key:', e);
-        await createAuditLog({
-            action: 'SET_SUMOPOD_KEY',
-            byUid: uid,
-            result: 'FAIL',
-            message: e.message || 'An unknown error occurred.',
-        });
-        return NextResponse.json({ error: e.message || 'An unknown error occurred' }, { status: 500 });
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
 
 
 export async function DELETE(request: Request) {
-    const { auth } = getAuthenticatedAppForUser();
-    const uid = auth.currentUser?.uid;
-
-    if (!uid) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    
+    let userUid: string;
     try {
-        if (!(await checkSuperAdmin(auth))) {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-        }
+        const { uid } = await verifySuperAdmin(request);
+        userUid = uid;
 
         // Delete/disable the secret
         await deleteSecret();
 
         // Update the metadata in Firestore
-        const settingsRef = doc(getAuthenticatedAppForUser().firestore, FIRESTORE_COLLECTIONS.integrationSettings);
-        await setDoc(settingsRef, {
-            sumopod: {
-                apiKeyLast4: null,
-                apiKeyRotatedAt: serverTimestamp(),
-            }
-        }, { merge: true });
+        const { firestore } = getAdminServices();
+        const settingsRef = firestore.collection('integrations').doc('settings');
+        
+        const updateData = {
+            'secrets.sumopodApiKeyLast4': FieldValue.delete(),
+            'secrets.sumopodApiKeyRotatedAt': FieldValue.delete(),
+        };
+
+        await settingsRef.update(updateData);
 
         await createAuditLog({
             action: 'CLEAR_SUMOPOD_KEY',
-            byUid: uid,
+            byUid: userUid,
             result: 'SUCCESS',
             message: 'SumoPod API Key was cleared.',
         });
@@ -122,13 +114,21 @@ export async function DELETE(request: Request) {
         return NextResponse.json({ message: 'SumoPod API Key cleared successfully' });
 
     } catch (e: any) {
+        const message = e.message || 'An unknown error occurred.';
+        if (userUid) {
+            await createAuditLog({
+                action: 'CLEAR_SUMOPOD_KEY',
+                byUid: userUid,
+                result: 'FAILURE',
+                message,
+            });
+        }
+        if (e.status) {
+            return NextResponse.json({ error: message }, { status: e.status });
+        }
         console.error('Error clearing SumoPod key:', e);
-        await createAuditLog({
-            action: 'CLEAR_SUMOPOD_KEY',
-            byUid: uid,
-            result: 'FAIL',
-            message: e.message || 'An unknown error occurred.',
-        });
-        return NextResponse.json({ error: e.message || 'An unknown error occurred' }, { status: 500 });
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
+
+    

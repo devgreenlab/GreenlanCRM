@@ -1,5 +1,5 @@
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { getAuthenticatedAppForUser } from '@/lib/firebase/server-app';
+import { FieldValue } from 'firebase-admin/firestore';
+import { getAdminServices } from '@/lib/firebase/server-app';
 import { FIRESTORE_COLLECTIONS } from './collections';
 import type { AuditLog } from './types';
 
@@ -8,12 +8,12 @@ export async function createAuditLog(
     logData: Omit<AuditLog, 'id' | 'at'>
 ) {
     try {
-        const { firestore } = getAuthenticatedAppForUser();
-        const auditLogsRef = collection(firestore, FIRESTORE_COLLECTIONS.auditLogs);
+        const { firestore } = getAdminServices();
+        const auditLogsRef = firestore.collection(FIRESTORE_COLLECTIONS.auditLogs);
 
-        await addDoc(auditLogsRef, {
+        await auditLogsRef.add({
             ...logData,
-            at: serverTimestamp(),
+            at: FieldValue.serverTimestamp(),
         });
     } catch (error) {
         console.error("Failed to create audit log:", error);
@@ -21,3 +21,5 @@ export async function createAuditLog(
         // or handle it silently. For now, we'll just log it to the server console.
     }
 }
+
+    

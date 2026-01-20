@@ -1,17 +1,16 @@
 import { NextResponse } from 'next/server';
-import { doc, getDoc } from 'firebase/firestore';
-import { getAuthenticatedAppForUser } from '@/lib/firebase/server-app';
-import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
-import { createAuditLog } from '@/lib/firestore/audit';
+import { verifySuperAdmin } from '@/lib/server/auth-utils';
+import { getAdminServices } from '@/lib/firebase/server-app';
+import { createAuditLog } from '@/lib/server/audit';
+import type { IntegrationSettings } from '@/lib/firestore/types';
+
 // In a real scenario, you'd import from '@google-cloud/secret-manager'
 // For this example, we'll simulate the behavior.
 // import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 
-async function checkSuperAdmin(auth: any) {
-    if (!auth.currentUser) return false;
-    const userDoc = await getDoc(doc(getAuthenticatedAppForUser().firestore, FIRESTORE_COLLECTIONS.users, auth.currentUser.uid));
-    return userDoc.exists() && userDoc.data().role === 'SUPER_ADMIN';
-}
+// const secretManager = new SecretManagerServiceClient();
+const SECRET_NAME = `projects/${process.env.GCP_PROJECT_ID}/secrets/sumopod_api_key/versions/latest`;
+
 
 // SIMULATED Secret Manager function
 async function getSecret(): Promise<string | null> {
@@ -23,22 +22,15 @@ async function getSecret(): Promise<string | null> {
 }
 
 export async function POST(request: Request) {
-    const { auth } = getAuthenticatedAppForUser();
-    const uid = auth.currentUser?.uid;
-
-    if (!uid) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    let userUid: string;
     try {
-        if (!(await checkSuperAdmin(auth))) {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-        }
+        const { uid } = await verifySuperAdmin(request);
+        userUid = uid;
 
-        const settingsRef = doc(getAuthenticatedAppForUser().firestore, FIRESTORE_COLLECTIONS.integrationSettings);
-        const settingsDoc = await getDoc(settingsRef);
+        const { firestore } = getAdminServices();
+        const settingsDoc = await firestore.collection('integrations').doc('settings').get();
 
-        if (!settingsDoc.exists() || !settingsDoc.data().sumopod?.apiKeyLast4) {
+        if (!settingsDoc.exists() || !settingsDoc.data()?.secrets?.sumopodApiKeyLast4) {
             throw new Error('SumoPod API Key is not configured.');
         }
         
@@ -61,7 +53,7 @@ export async function POST(request: Request) {
         // }
         
         await createAuditLog({
-            action: 'TEST_SUMOPOD_SUCCESS',
+            action: 'TEST_SUMOPOD_CONNECTION',
             byUid: uid,
             result: 'SUCCESS',
             message: `Successfully connected to SumoPod.`,
@@ -70,13 +62,21 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: 'Connection to SumoPod successful!' });
 
     } catch (e: any) {
+        const message = e.message || 'An unknown error occurred during the test.';
+        if (userUid) {
+            await createAuditLog({
+                action: 'TEST_SUMOPOD_CONNECTION',
+                byUid: userUid,
+                result: 'FAILURE',
+                message,
+            });
+        }
+        if (e.status) {
+            return NextResponse.json({ error: message }, { status: e.status });
+        }
         console.error('Error testing SumoPod connection:', e);
-         await createAuditLog({
-            action: 'TEST_SUMOPOD_FAIL',
-            byUid: uid,
-            result: 'FAIL',
-            message: e.message || 'An unknown error occurred during the test.',
-        });
-        return NextResponse.json({ error: e.message || 'An unknown error occurred' }, { status: 500 });
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }
+
+    
