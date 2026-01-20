@@ -64,7 +64,9 @@ export async function POST(request: Request) {
     if (!baseUrl || !authMode) {
       return NextResponse.json({ error: 'baseUrl and authMode are required.' }, { status: 400 });
     }
-
+    if (baseUrl.includes('/dashboard')) {
+        return NextResponse.json({ error: 'The Base URL should not include the "/dashboard" path.' }, { status: 400 });
+    }
     if (!['X-Api-Key', 'Bearer'].includes(authMode)) {
       return NextResponse.json({ error: 'Invalid authMode.' }, { status: 400 });
     }
@@ -72,8 +74,8 @@ export async function POST(request: Request) {
     const { firestore: db } = getAdminServices();
     const settingsRef = db.collection('integrations').doc('settings');
     
-    // Normalize URL
-    const normalizedUrl = baseUrl.trim().replace(/\/dashboard\/?$/, '').replace(/\/$/, '');
+    // Normalize URL by trimming and removing any trailing slash
+    const normalizedUrl = baseUrl.trim().replace(/\/$/, '');
     
     const updatePayload: Partial<IntegrationSettings> = {
         wahaBaseUrl: normalizedUrl,
@@ -110,4 +112,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
-    

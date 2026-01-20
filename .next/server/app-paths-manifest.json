@@ -1,4 +1,5 @@
 {
+  "/api/admin/waha/config/route": "app/api/admin/waha/config/route.js",
   "/dashboard/page": "app/dashboard/page.js",
   "/obrolan/page": "app/obrolan/page.js",
   "/kontak/page": "app/kontak/page.js",

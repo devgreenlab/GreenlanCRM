@@ -20,9 +20,13 @@ export async function POST(request: Request) {
         const response = await wahaFetch('/api/sessions');
 
         if (!response.ok) {
-            const errorBody = await response.text();
-            console.error(`[WAHA Test] Failed with status ${response.status}: ${errorBody}`);
-            throw new Error(`Connection test failed. WAHA API responded with status ${response.status}.`);
+            const errorText = await response.text();
+             try {
+                const errorJson = JSON.parse(errorText);
+                throw new Error(`Connection test failed. WAHA API responded with status ${response.status}: ${errorJson.message || errorJson.error || errorText}`);
+            } catch {
+                 throw new Error(`Connection test failed. WAHA API responded with status ${response.status}: ${errorText}`);
+            }
         }
         
         const data = await response.json();
@@ -56,4 +60,3 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: message }, { status: 500 });
     }
 }
-    

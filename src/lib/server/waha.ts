@@ -58,6 +58,8 @@ export async function wahaFetch(endpoint: string, options: RequestInit = {}): Pr
         headers.set('Content-Type', 'application/json');
     }
 
+    headers.set('Accept', 'application/json');
+
     console.log(`[wahaFetch] Calling: ${options.method || 'GET'} ${url} with auth mode: ${authMode}`);
 
     return fetch(url, {
@@ -65,4 +67,3 @@ export async function wahaFetch(endpoint: string, options: RequestInit = {}): Pr
         headers,
     });
 }
-    

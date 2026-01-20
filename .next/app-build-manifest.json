@@ -36,10 +36,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/pengaturan/integrasi/page.js"
     ],
-    "/api/admin/integrations/settings/route": [
+    "/api/admin/waha/config/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/admin/integrations/settings/route.js"
+      "static/chunks/app/api/admin/waha/config/route.js"
     ]
   }
 }
