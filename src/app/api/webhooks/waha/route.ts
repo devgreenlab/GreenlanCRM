@@ -1,7 +1,7 @@
 // src/app/api/webhooks/waha/route.ts
 import { NextResponse } from 'next/server';
 import { getAdminFirestore } from '@/lib/server/firebase-admin';
-import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp, query, where, limit } from 'firebase-admin/firestore';
 import type { Lead, UserProfile } from '@/lib/firestore/types';
 
 // This is a simplified, non-secure way to verify webhooks for this prototype.
@@ -60,8 +60,9 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: `No user found for session ${session}` });
         }
         
-        const user = userSnapshot.docs[0].data() as UserProfile;
-        const userRef = userSnapshot.docs[0].ref;
+        const userDoc = userSnapshot.docs[0];
+        const user = { id: userDoc.id, ...userDoc.data() } as UserProfile;
+        const userRef = userDoc.ref;
 
         // 4. Find or create the lead associated with this chat
         const leadsRef = db.collection('leads');
