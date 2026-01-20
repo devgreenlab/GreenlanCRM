@@ -56,8 +56,12 @@ service cloud.firestore {
 
     // --- Settings & System Collections ---
     match /settings/{docId} {
-      // Only Super Admins can manage settings.
-      allow read, write: if isSuperAdmin();
+      // Allow reading for specific public docs, otherwise require admin for read.
+      allow get: if ((docId == 'navigation' || docId == 'pipeline') && isActive()) || isSuperAdmin();
+      
+      // Writing is always admin-only for any settings document.
+      // Listing settings is also admin-only.
+      allow list, write: if isSuperAdmin();
     }
 
     match /integrations/settings {
