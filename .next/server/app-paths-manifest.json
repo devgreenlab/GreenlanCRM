@@ -1,3 +1,5 @@
 {
+  "/api/admin/integrations/settings/route": "app/api/admin/integrations/settings/route.js",
+  "/api/admin/integrations/waha-key/route": "app/api/admin/integrations/waha-key/route.js",
   "/page": "app/page.js"
 }
