@@ -255,7 +255,6 @@ export default function ObrolanPage() {
   const whatsappLeadsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     const coll = collection(firestore, FIRESTORE_COLLECTIONS.leads);
-    // REMOVED: orderBy('lastMessageAt', 'desc')
     const baseFilters = [where('source', '==', 'whatsapp')];
 
     if (userProfile.role === 'SUPER_ADMIN') {
@@ -376,5 +375,3 @@ export default function ObrolanPage() {
     </div>
   );
 }
-
-    
