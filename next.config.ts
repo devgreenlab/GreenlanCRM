@@ -31,9 +31,6 @@ const nextConfig: NextConfig = {
     ],
   },
   serverExternalPackages: ['firebase-admin'],
-  allowedDevOrigins: [
-    'https://*.cloudworkstations.dev',
-  ],
 };
 
 export default nextConfig;
