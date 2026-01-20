@@ -245,10 +245,37 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../src/app/api/admin/waha/logout/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/waha/logout">> = Specific
+  const handler = {} as typeof import("../../src/app/api/admin/waha/logout/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/admin/waha/status/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/waha/status">> = Specific
+  const handler = {} as typeof import("../../src/app/api/admin/waha/status/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../src/app/api/admin/waha/test/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/waha/test">> = Specific
   const handler = {} as typeof import("../../src/app/api/admin/waha/test/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/wa/send/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/wa/send">> = Specific
+  const handler = {} as typeof import("../../src/app/api/wa/send/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

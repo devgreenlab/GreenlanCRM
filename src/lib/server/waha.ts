@@ -25,9 +25,12 @@ export async function getWahaConfig() {
     if (!secret?.apiKey) {
         throw new Error('WAHA API Key not set.');
     }
+    
+    // Normalize URL by trimming and removing any trailing slash
+    const normalizedUrl = settings.wahaBaseUrl.trim().replace(/\/$/, '');
 
     return { 
-        baseUrl: settings.wahaBaseUrl,
+        baseUrl: normalizedUrl,
         apiKey: secret.apiKey,
         authMode: settings.wahaAuthMode || 'X-Api-Key', // Default to X-Api-Key
     };
@@ -44,7 +47,7 @@ export async function getWahaConfig() {
 export async function wahaFetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
     const { baseUrl, apiKey, authMode } = await getWahaConfig();
 
-    const url = `${baseUrl}${endpoint}`;
+    const url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
     
     const headers = new Headers(options.headers || {});
     

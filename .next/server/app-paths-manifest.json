@@ -1,8 +1,7 @@
 {
-  "/api/admin/waha/config/route": "app/api/admin/waha/config/route.js",
   "/dashboard/page": "app/dashboard/page.js",
-  "/obrolan/page": "app/obrolan/page.js",
   "/kontak/page": "app/kontak/page.js",
   "/page": "app/page.js",
+  "/login/page": "app/login/page.js",
   "/pengaturan/integrasi/page": "app/pengaturan/integrasi/page.js"
 }
