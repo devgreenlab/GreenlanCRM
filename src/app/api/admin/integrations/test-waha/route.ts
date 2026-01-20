@@ -36,27 +36,34 @@ export async function POST(request: Request) {
 
         const { baseUrl, apiKey } = await getWahaConfig();
 
-        // The /api/check-connection endpoint is a common pattern for health checks.
-        const testUrl = `${baseUrl}/api/check-connection`;
+        // Use a standard, safe, side-effect-free endpoint for connection testing.
+        const testUrl = `${baseUrl.replace(/\/$/, '')}/api/version`;
+
+        console.log(`[WAHA Test] Attempting to connect to: ${testUrl}. Auth Header: X-Api-Key. Key Length: ${apiKey.length}`);
 
         const response = await fetch(testUrl, {
             method: 'GET',
             headers: { 'X-Api-Key': apiKey },
         });
 
+        console.log(`[WAHA Test] Received status code: ${response.status}`);
+
         if (!response.ok) {
             const errorBody = await response.text();
             throw new Error(`Connection test failed. WAHA API responded with status ${response.status}: ${errorBody}`);
         }
+        
+        const data = await response.json();
+        const version = data.version || 'unknown';
 
         await createAuditLog({
             action: 'TEST_WAHA_CONNECTION',
             byUid: uid,
             result: 'SUCCESS',
-            message: 'Successfully connected to WAHA instance.',
+            message: `Successfully connected to WAHA instance. Version: ${version}`,
         });
 
-        return NextResponse.json({ message: 'Connection to WAHA successful!' });
+        return NextResponse.json({ message: `Connection to WAHA successful! Version: ${version}` });
 
     } catch (error: any) {
         const message = error.message || 'An unknown error occurred during the connection test.';

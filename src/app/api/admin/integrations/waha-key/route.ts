@@ -37,9 +37,11 @@ export async function POST(request: Request) {
         const { uid } = await verifySuperAdmin(request);
         userUid = uid;
         const body = await request.json();
-        const { apiKey } = body;
+        
+        // Sanitize the API key by trimming whitespace.
+        const apiKey = (body.apiKey || '').trim();
 
-        if (typeof apiKey !== 'string' || apiKey.length < 10) {
+        if (apiKey.length < 10) {
             throw new Error('A valid API key is required.');
         }
 
