@@ -1,7 +1,7 @@
 // src/app/api/admin/integrations/settings/route.ts
 import { NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
-import { verifySuperAdmin } from '@/lib/server/auth-utils';
+import { verifySuperAdmin, AuthError } from '@/lib/server/auth-utils';
 import { getAdminServices } from '@/lib/firebase/server-app';
 import { createAuditLog } from '@/lib/server/audit';
 import type { IntegrationSettings } from '@/lib/firestore/types';
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     return NextResponse.json(settings, { status: 200 });
 
   } catch (error: any) {
-    if (error.status) {
+    if (error instanceof AuthError) {
         return NextResponse.json({ error: error.message }, { status: error.status });
     }
     console.error('Error fetching integration settings:', error);
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
             outboundEnabled: body.flags?.outboundEnabled === true,
             captureFromNow: body.flags?.captureFromNow === true,
         },
-        updatedBy: uid,
+        updatedBy: userUid,
         updatedAt: FieldValue.serverTimestamp() as any,
         secrets: {
             // Preserve existing secrets that are not part of this form
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
 
     await createAuditLog({
         action: 'SAVE_INTEGRATION_SETTINGS',
-        byUid: uid,
+        byUid: userUid,
         result: 'SUCCESS',
         message: 'Successfully updated integration settings.'
     });
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
           message,
       });
     }
-    if (error.status) {
+    if (error instanceof AuthError) {
       return NextResponse.json({ error: message }, { status: error.status });
     }
     console.error('Error saving integration settings:', error);

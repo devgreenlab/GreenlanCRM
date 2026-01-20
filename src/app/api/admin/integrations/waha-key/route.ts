@@ -1,7 +1,7 @@
 // src/app/api/admin/integrations/waha-key/route.ts
 import { NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
-import { verifySuperAdmin } from '@/lib/server/auth-utils';
+import { verifySuperAdmin, AuthError } from '@/lib/server/auth-utils';
 import { getAdminServices } from '@/lib/firebase/server-app';
 import { createAuditLog } from '@/lib/server/audit';
 import { encrypt, decrypt } from '@/lib/server/crypto';
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
                 message,
             });
         }
-        if (error.status) {
+        if (error instanceof AuthError) {
             return NextResponse.json({ error: message }, { status: error.status });
         }
         console.error('Error setting WAHA API key:', error);
@@ -132,7 +132,7 @@ export async function DELETE(request: Request) {
                 message,
             });
         }
-         if (error.status) {
+         if (error instanceof AuthError) {
             return NextResponse.json({ error: message }, { status: error.status });
         }
         console.error('Error clearing WAHA API key:', error);

@@ -1,6 +1,6 @@
 // src/app/api/admin/waha/stop/route.ts
 import { NextResponse } from 'next/server';
-import { verifySuperAdmin } from '@/lib/server/auth-utils';
+import { verifySuperAdmin, AuthError } from '@/lib/server/auth-utils';
 import { createAuditLog } from '@/lib/server/audit';
 import { getAdminServices } from '@/lib/firebase/server-app';
 import { decrypt } from '@/lib/server/crypto';
@@ -64,6 +64,9 @@ export async function POST(request: Request) {
                 result: 'FAILURE',
                 message: `Failed to stop session '${sessionName}': ${message}`,
             });
+        }
+        if (error instanceof AuthError) {
+            return NextResponse.json({ error: message }, { status: error.status });
         }
         console.error('Error stopping WAHA session:', error);
         return NextResponse.json({ success: false, error: message }, { status: 500 });

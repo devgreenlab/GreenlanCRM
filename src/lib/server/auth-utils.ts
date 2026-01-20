@@ -14,16 +14,19 @@ export class AuthError extends Error {
 async function verifyTokenAndGetUser(request: Request): Promise<{ uid: string }> {
     const authHeader = request.headers.get('Authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.log('Auth verification failed: Missing or invalid Authorization header.');
         throw new AuthError('Unauthorized: Missing or invalid Authorization header.', 401);
     }
 
     const idToken = authHeader.split('Bearer ')[1];
     if (!idToken) {
+        console.log('Auth verification failed: Token is missing.');
         throw new AuthError('Unauthorized: Token is missing.', 401);
     }
 
     try {
         const decodedToken = await getAdminServices().auth.verifyIdToken(idToken);
+        console.log(`Auth verification success: UID=${decodedToken.uid}`);
         return { uid: decodedToken.uid };
     } catch (error) {
         console.error("Token verification failed:", error);
@@ -43,8 +46,12 @@ export async function verifySuperAdmin(request: Request): Promise<{ uid: string 
 
     const db = getAdminServices().firestore;
     const userDoc = await db.collection('users').doc(uid).get();
+    
+    const userRole = userDoc.exists ? userDoc.data()?.role : 'N/A';
+    console.log(`Authorization check for UID ${uid}: Role from Firestore is '${userRole}'. Required: 'SUPER_ADMIN'.`);
 
     if (!userDoc.exists || userDoc.data()?.role !== 'SUPER_ADMIN') {
+        console.log(`Authorization failed for UID ${uid}: User is not a Super Admin.`);
         throw new AuthError('Forbidden: User is not a Super Admin.', 403);
     }
 

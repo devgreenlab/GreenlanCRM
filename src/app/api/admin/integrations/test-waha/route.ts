@@ -1,6 +1,6 @@
 // src/app/api/admin/integrations/test-waha/route.ts
 import { NextResponse } from 'next/server';
-import { verifySuperAdmin } from '@/lib/server/auth-utils';
+import { verifySuperAdmin, AuthError } from '@/lib/server/auth-utils';
 import { createAuditLog } from '@/lib/server/audit';
 import { getAdminServices } from '@/lib/firebase/server-app';
 import { decrypt } from '@/lib/server/crypto';
@@ -74,6 +74,9 @@ export async function POST(request: Request) {
                 result: 'FAILURE',
                 message,
             });
+        }
+        if (error instanceof AuthError) {
+            return NextResponse.json({ error: message }, { status: error.status });
         }
         console.error('Error testing WAHA connection:', error);
         return NextResponse.json({ error: message }, { status: 500 });

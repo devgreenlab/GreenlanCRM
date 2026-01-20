@@ -107,7 +107,10 @@ export default function IntegrasiPage() {
     try {
         const headers = await getAuthHeader();
         const response = await fetch('/api/admin/integrations/settings', { headers });
-        if (!response.ok) throw new Error('Failed to fetch settings');
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to fetch settings');
+        }
         const data = await response.json();
         setSettings(data);
         form.reset({
@@ -217,7 +220,7 @@ export default function IntegrasiPage() {
     }
   }
 
-  if (isProfileLoading || isFetching) {
+  if (isProfileLoading || (userProfile?.role === 'SUPER_ADMIN' && isFetching)) {
     return <PageSkeleton />;
   }
 
@@ -367,5 +370,3 @@ export default function IntegrasiPage() {
     </div>
   );
 }
-
-    
