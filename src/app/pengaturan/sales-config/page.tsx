@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 
 import {
@@ -31,7 +32,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldAlert, Users } from 'lucide-react';
+import { ShieldAlert, Users, Bot } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { EmptyState } from '@/components/shared/empty-state';
 import { SessionManagerDialog } from '@/components/admin/sales/session-manager-dialog';
@@ -152,8 +153,8 @@ export default function SalesConfigPage() {
     if (!user.wahaSession) {
         toast({
             variant: 'destructive',
-            title: 'Sesi Belum Diatur',
-            description: 'Harap atur dan simpan nama sesi WAHA terlebih dahulu.',
+            title: 'Session Name Required',
+            description: 'Please set and save a WAHA session name for this user first.',
         });
         return;
     }
@@ -183,7 +184,7 @@ export default function SalesConfigPage() {
         <CardHeader>
             <CardTitle>Sales Agent Configuration</CardTitle>
             <CardDescription>
-            Assign a unique WAHA session and display number to each sales agent for WhatsApp message routing.
+            Assign a unique WAHA session to each sales agent and manage their WhatsApp connection.
             </CardDescription>
         </CardHeader>
         <CardContent>
@@ -201,8 +202,7 @@ export default function SalesConfigPage() {
                     <TableHead>Agent Name</TableHead>
                     <TableHead>WAHA Session</TableHead>
                     <TableHead>WhatsApp Number</TableHead>
-                    <TableHead className="text-right">Save Config</TableHead>
-                    <TableHead className="text-right">Manage Session</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -227,22 +227,23 @@ export default function SalesConfigPage() {
                         />
                     </TableCell>
                     <TableCell className="text-right">
-                        <Button 
-                            size="sm" 
-                            onClick={() => handleSaveChanges(user.id)}
-                            disabled={savingStates[user.id]}
-                        >
-                        {savingStates[user.id] ? 'Saving...' : 'Save'}
-                        </Button>
-                    </TableCell>
-                     <TableCell className="text-right">
-                        <Button 
-                            variant="outline"
-                            size="sm" 
-                            onClick={() => handleManageSession(user)}
-                        >
-                            Kelola Sesi
-                        </Button>
+                        <div className="flex gap-2 justify-end">
+                            <Button 
+                                size="sm" 
+                                onClick={() => handleSaveChanges(user.id)}
+                                disabled={savingStates[user.id]}
+                            >
+                            {savingStates[user.id] ? 'Saving...' : 'Save'}
+                            </Button>
+                            <Button 
+                                variant="outline"
+                                size="sm" 
+                                onClick={() => handleManageSession(user)}
+                            >
+                                <Bot className="mr-2 h-4 w-4"/>
+                                Manage Session
+                            </Button>
+                        </div>
                     </TableCell>
                     </TableRow>
                 ))}
@@ -254,7 +255,10 @@ export default function SalesConfigPage() {
         </Card>
          <DialogContent className="max-w-md">
             <DialogHeader>
-                <DialogTitle>Kelola Sesi: {selectedUser?.name}</DialogTitle>
+                <DialogTitle>Manage Session: {selectedUser?.name}</DialogTitle>
+                <DialogDescription>
+                    Control the WhatsApp connection for session: <span className="font-mono bg-muted px-1 py-0.5 rounded">{selectedUser?.wahaSession}</span>
+                </DialogDescription>
             </DialogHeader>
             {selectedUser && <SessionManagerDialog user={selectedUser} />}
         </DialogContent>

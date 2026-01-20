@@ -48,6 +48,14 @@ const userFormSchema = z.object({
   role: z.enum(['SUPER_ADMIN', 'HEAD_SALES', 'SALES']),
   teamId: z.string().nullable().optional(),
   isActive: z.boolean(),
+  waNumber: z.string().optional(),
+  wahaSession: z.string().optional(),
+}).refine(data => {
+    // wahaSession is required if role is SALES
+    return data.role !== 'SALES' || (data.role === 'SALES' && !!data.wahaSession);
+}, {
+    message: "WAHA Session is required for Sales role.",
+    path: ["wahaSession"],
 });
 
 type UserFormValues = z.infer<typeof userFormSchema>;
@@ -74,6 +82,8 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
       role: user?.role ?? 'SALES',
       teamId: user?.teamId ?? null,
       isActive: user?.isActive ?? true,
+      waNumber: user?.waNumber ?? '',
+      wahaSession: user?.wahaSession ?? '',
     },
   });
 
@@ -145,6 +155,7 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
 
         await setDoc(userRef, {
           ...userData,
+          id: newUser.uid,
           teamId: data.role === 'SUPER_ADMIN' ? null : data.teamId,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
@@ -238,6 +249,39 @@ export function UserForm({ user, teams, allUsers, onSave, className }: UserFormP
           )}
         />
         
+        {role === 'SALES' && (
+            <>
+                <FormField
+                    control={form.control}
+                    name="wahaSession"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>WAHA Session</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g., agent_john" {...field} />
+                        </FormControl>
+                        <FormDescription>Unique session name for this sales agent in WAHA.</FormDescription>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="waNumber"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>WhatsApp Number</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g., 628123456789" {...field} />
+                        </FormControl>
+                         <FormDescription>The WhatsApp number associated with this session for display.</FormDescription>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </>
+        )}
+
         <FormField
           control={form.control}
           name="teamId"

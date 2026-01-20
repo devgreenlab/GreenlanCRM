@@ -1,3 +1,4 @@
+// src/app/api/wa/send/route.ts
 'use server';
 
 import { NextResponse } from 'next/server';
@@ -5,26 +6,48 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { verifyAuthenticatedUser } from '@/lib/server/auth-utils';
 import { getAdminFirestore } from '@/lib/server/firebase-admin';
 import { createAuditLog } from '@/lib/server/audit';
-import type { IntegrationSettings, Lead, UserProfile, Activity } from '@/lib/firestore/types';
-import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
+import type { IntegrationSettings, Lead, UserProfile, Message } from '@/lib/firestore/types';
+import { decrypt } from '@/lib/server/crypto';
 
-async function callN8nWebhook(
-    webhookUrl: string,
-    secret: string,
-    payload: { leadId: string, chatId: string, text: string, session: string }
+
+async function getWahaConfig() {
+    const db = getAdminFirestore();
+    const settingsDoc = await db.collection('integrations').doc('settings').get();
+    const settings = settingsDoc.data() as IntegrationSettings;
+    if (!settings?.waha?.baseUrl) {
+        throw new Error('WAHA Base URL not configured.');
+    }
+
+    const secretDoc = await db.collection('integrations_secrets').doc('waha').get();
+    const encryptedApiKey = secretDoc.exists ? secretDoc.data()?.apiKey : null;
+    if (!encryptedApiKey) {
+        throw new Error('WAHA API Key not set.');
+    }
+    const apiKey = decrypt(encryptedApiKey);
+
+    return { baseUrl: settings.waha.baseUrl, apiKey };
+}
+
+async function callWahaSendText(
+    baseUrl: string,
+    apiKey: string,
+    payload: { session: string, chatId: string, text: string }
 ) {
-    const response = await fetch(webhookUrl, {
+    const { session, chatId, text } = payload;
+    const sendUrl = `${baseUrl}/api/sessions/${session}/send-text`;
+
+    const response = await fetch(sendUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CRM-Secret': secret,
+            'X-Api-Key': apiKey,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ chatId, text }),
     });
 
     if (!response.ok) {
         const errorBody = await response.text();
-        throw new Error(`n8n webhook failed with status ${response.status}: ${errorBody}`);
+        throw new Error(`WAHA API failed with status ${response.status}: ${errorBody}`);
     }
 
     return response.json();
@@ -45,41 +68,16 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Message and leadId are required.' }, { status: 400 });
         }
 
-        await createAuditLog({
-            action: 'SEND_WA_ATTEMPT',
-            byUid: userProfile.id,
-            result: 'SUCCESS', // Represents the attempt itself was valid
-            message: `Attempting to send message to lead ${leadId}`
-        });
-
-        // 2. Get integration settings from Firestore
+        // 2. Fetch Lead to get session and chatId
         const db = getAdminFirestore();
-        const settingsRef = db.collection('integrations').doc('settings');
-        const doc = await settingsRef.get();
-        
-        if (!doc.exists) {
-            throw new Error('Integration settings not found.');
-        }
-        const settings = doc.data() as IntegrationSettings;
-
-        // 3. Validate if outbound is enabled
-        if (!settings.flags?.outboundEnabled) {
-            throw new Error('Outbound messaging is disabled by an administrator.');
-        }
-
-        if (!settings.n8n?.outboundWebhookUrl || !settings.secrets?.crmWebhookSecret) {
-            throw new Error('n8n webhook URL or CRM secret is not configured.');
-        }
-
-        // 4. Fetch Lead to get session and chatId
-        const leadRef = db.collection(FIRESTORE_COLLECTIONS.leads).doc(leadId);
+        const leadRef = db.collection('leads').doc(leadId);
         const leadDoc = await leadRef.get();
         if (!leadDoc.exists) {
             throw new Error('Lead not found.');
         }
         const lead = leadDoc.data() as Lead;
         
-        // 5. Security check: ensure user is allowed to message this lead
+        // 3. Security check: ensure user is allowed to message this lead
         if (userProfile.role === 'SALES' && lead.ownerUid !== userProfile.id) {
             throw new Error('You do not have permission to message this lead.');
         }
@@ -94,30 +92,36 @@ export async function POST(request: Request) {
             throw new Error('Lead is missing required WhatsApp information (session or chatId).');
         }
 
-        // 6. Call n8n webhook
-        await callN8nWebhook(
-            settings.n8n.outboundWebhookUrl,
-            settings.secrets.crmWebhookSecret,
-            { leadId, chatId, text: message, session }
-        );
+        await createAuditLog({
+            action: 'SEND_WA_ATTEMPT',
+            byUid: userProfile.id,
+            result: 'SUCCESS',
+            message: `Attempting to send message to lead ${leadId}`
+        });
 
-        // 7. Log activity and update lead on success
+        // 4. Get integration settings
+        const { baseUrl, apiKey } = await getWahaConfig();
+
+        // 5. Call WAHA API directly
+        await callWahaSendText(baseUrl, apiKey, { session, chatId, text: message });
+
+        // 6. Log activity and update lead on success
         const batch = db.batch();
+        const messageRef = leadRef.collection('messages').doc();
 
-        const activityRef = db.collection(FIRESTORE_COLLECTIONS.activities).doc();
-        const activityPayload: Omit<Activity, 'id'> = {
-            leadId,
-            teamId: lead.teamId,
+        const messagePayload: Omit<Message, 'id'> = {
+            direction: 'out',
+            text: message,
+            session: session,
             actorUid: userProfile.id,
-            type: 'whatsapp_out',
-            content: message,
-            createdAt: FieldValue.serverTimestamp() as Timestamp,
+            timestamp: FieldValue.serverTimestamp() as Timestamp,
+            status: 'sent',
         };
-        batch.set(activityRef, activityPayload);
+        batch.set(messageRef, messagePayload);
 
         batch.update(leadRef, {
             lastMessagePreview: message,
-            lastOutboundAt: FieldValue.serverTimestamp(),
+            lastMessageAt: FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
         });
 

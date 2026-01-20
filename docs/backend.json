@@ -51,7 +51,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Lead",
       "type": "object",
-      "description": "Represents a lead in the CRM.",
+      "description": "Represents a lead in the CRM, often originating from a chat.",
       "properties": {
         "id": { "type": "string" },
         "ownerUid": { "type": "string" },
@@ -59,14 +59,30 @@
         "source": { "type": "string", "enum": ["whatsapp", "web", "manual"] },
         "customerName": { "type": "string" },
         "phone": { "type": "string" },
-        "chatId": { "type": "string" },
-        "wahaSession": { "type": "string" },
+        "chatId": { "type": "string", "description": "The unique identifier for the chat, e.g., 62812...@c.us for WhatsApp." },
+        "wahaSession": { "type": "string", "description": "The WAHA session of the assigned sales agent." },
         "stage": { "type": "string" },
-        "lastInboundAt": { "type": "string", "format": "date-time" },
-        "lastOutboundAt": { "type": "string", "format": "date-time" },
-        "lastMessagePreview": { "type": "string" }
+        "lastMessageAt": { "type": "string", "format": "date-time", "description": "Timestamp of the last message (in or out)." },
+        "lastMessagePreview": { "type": "string", "description": "A snippet of the last message sent or received." },
+        "unreadCount": { "type": "number", "description": "Number of unread messages for the sales agent." }
       },
       "required": ["id", "ownerUid", "teamId", "source", "customerName", "phone", "chatId", "wahaSession", "stage"]
+    },
+     "Message": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Message",
+      "type": "object",
+      "description": "Represents a single message in a chat with a lead.",
+      "properties": {
+        "direction": { "type": "string", "enum": ["in", "out"], "description": "Indicates if the message was inbound or outbound." },
+        "text": { "type": "string", "description": "The content of the message." },
+        "session": { "type": "string", "description": "The WAHA session that handled the message." },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "actorUid": { "type": "string", "description": "For outbound messages, the UID of the CRM user who sent it." },
+        "status": { "type": "string", "enum": ["sent", "delivered", "read", "failed"], "description": "The delivery status of the message." },
+        "raw": { "type": "object", "description": "The raw, unprocessed payload from the webhook for debugging." }
+      },
+      "required": ["direction", "text", "timestamp"]
     },
     "Deal": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -88,34 +104,26 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Activity",
       "type": "object",
-      "description": "Represents an activity related to a contact, lead, or deal.",
+      "description": "Represents a non-chat activity related to a contact, lead, or deal.",
       "properties": {
         "id": { "type": "string" },
         "leadId": { "type": "string" },
         "teamId": { "type": "string" },
         "actorUid": { "type": "string" },
-        "type": { "type": "string", "enum": ["whatsapp_in", "whatsapp_out", "call", "meeting"] },
+        "type": { "type": "string", "enum": ["call", "meeting", "note"] },
         "content": { "type": "string" }
       },
       "required": ["id", "teamId", "actorUid", "type", "content"]
     },
     "IntegrationSetting": {
       "title": "Integration Setting",
-      "description": "Stores the configuration for external integrations like WAHA and n8n.",
+      "description": "Stores the configuration for external integrations like WAHA.",
       "type": "object",
       "properties": {
         "waha": {
           "type": "object",
           "properties": {
-            "baseUrl": { "type": "string", "format": "uri" },
-            "session": { "type": "string" }
-          }
-        },
-        "n8n": {
-          "type": "object",
-          "properties": {
-            "inboundWebhookUrl": { "type": "string", "format": "uri" },
-            "outboundWebhookUrl": { "type": "string", "format": "uri" }
+            "baseUrl": { "type": "string", "format": "uri" }
           }
         },
         "secrets": {
@@ -130,7 +138,8 @@
           "type": "object",
           "properties": {
             "inboundEnabled": { "type": "boolean" },
-            "outboundEnabled": { "type": "boolean" }
+            "outboundEnabled": { "type": "boolean" },
+            "captureFromNow": { "type": "boolean", "description": "If true, ignore webhook events for messages sent before the service was started."}
           }
         },
         "updatedAt": { "type": "string", "format": "date-time" },
@@ -143,7 +152,7 @@
         "type": "object",
         "description": "Records important actions performed by users, especially admins.",
         "properties": {
-            "action": { "type": "string", "enum": ["SAVE_INTEGRATION_SETTINGS", "SET_WAHA_KEY", "CLEAR_WAHA_KEY", "TEST_WAHA_CONNECTION", "SEND_WA_ATTEMPT", "SEND_WA_SUCCESS", "SEND_WA_FAIL"] },
+            "action": { "type": "string", "enum": ["SAVE_INTEGRATION_SETTINGS", "SET_WAHA_KEY", "CLEAR_WAHA_KEY", "TEST_WAHA_CONNECTION", "SEND_WA_ATTEMPT", "SEND_WA_SUCCESS", "SEND_WA_FAIL", "WAHA_SESSION_START", "WAHA_SESSION_STOP", "WAHA_SESSION_LOGOUT", "WAHA_SESSION_STATUS", "INBOUND_WA_RECEIVED", "INBOUND_WA_FAILED"] },
             "byUid": { "type": "string", "description": "The UID of the user who performed the action." },
             "at": { "type": "string", "format": "date-time" },
             "result": { "type": "string", "enum": ["SUCCESS", "FAILURE"] },
@@ -200,12 +209,16 @@
         "definition": { "schema": { "$ref": "#/entities/Lead" }, "description": "Stores lead information." }
       },
       {
+        "path": "/leads/{leadId}/messages/{messageId}",
+        "definition": { "schema": { "$ref": "#/entities/Message" }, "description": "Stores the chat history for a specific lead." }
+      },
+      {
         "path": "/deals/{dealId}",
         "definition": { "schema": { "$ref": "#/entities/Deal" }, "description": "Stores deal information." }
       },
       {
         "path": "/activities/{activityId}",
-        "definition": { "schema": { "$ref": "#/entities/Activity" }, "description": "Stores activity information." }
+        "definition": { "schema": { "$ref": "#/entities/Activity" }, "description": "Stores non-chat activity information." }
       },
       {
         "path": "/settings/navigation",
@@ -224,6 +237,6 @@
         "definition": { "schema": { "$ref": "#/entities/AuditLog" }, "description": "Stores audit logs for important admin actions." }
       }
     ],
-    "reasoning": "This Firestore structure is designed to support a Greenlab CRM application. The entities cover all core aspects of a CRM: teams, users, contacts, leads, deals, and activities. It also includes settings for pipelines and integrations, and a collection for logs. For a public demo, security rules are temporarily relaxed to allow public read access, but the data model includes 'teamId' on relevant entities to facilitate a straightforward transition to a multi-tenant security model once user authentication is implemented. This structure avoids complex joins by keeping related data in separate top-level collections, which is efficient for Firestore queries."
+    "reasoning": "This Firestore structure is designed to support a Greenlab CRM application. The entities cover all core aspects of a CRM: teams, users, contacts, leads, deals, and activities. It now includes a subcollection for messages under each lead to properly store chat history. It also includes settings for pipelines and integrations, and a collection for logs. Security rules will ensure data is accessed only by authorized roles."
   }
 }

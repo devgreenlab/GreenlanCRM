@@ -4,16 +4,17 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { verifySuperAdmin } from '@/lib/server/auth-utils';
 import { getAdminFirestore } from '@/lib/server/firebase-admin';
 import { createAuditLog } from '@/lib/server/audit';
+import { encrypt, decrypt } from '@/lib/server/crypto';
 
-// This function saves the API key to a secure, server-only location.
-// In a real app, this would be Secret Manager. For this prototype, we use a firestore
-// collection ('integrations_secrets') that is blocked from client access by security rules.
+// This function saves the encrypted API key to a secure, server-only collection.
 async function saveWahaApiKey(apiKey: string): Promise<void> {
     try {
+        const encryptedKey = encrypt(apiKey);
         const db = getAdminFirestore();
-        await db.collection('integrations_secrets').doc('waha').set({ apiKey });
+        // The `integrations_secrets` collection has Firestore rules blocking all client access.
+        await db.collection('integrations_secrets').doc('waha').set({ apiKey: encryptedKey });
     } catch(e) {
-        console.error("Could not save WAHA API Key:", e);
+        console.error("Could not save encrypted WAHA API Key:", e);
         throw new Error("Failed to save API key to secure store.");
     }
 }
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
             throw new Error('A valid API key is required.');
         }
 
-        // 1. Save the key to a secure, server-only location (write-only)
+        // 1. Encrypt and save the key to a secure, server-only location
         await saveWahaApiKey(apiKey);
 
         // 2. Update public metadata in the main settings document
@@ -98,7 +99,7 @@ export async function DELETE(request: Request) {
         // 1. Delete the key from the secure store
         await deleteWahaApiKey();
 
-        // 2. Update the public metadata
+        // 2. Update the public metadata by removing the fields
         const db = getAdminFirestore();
         const settingsRef = db.collection('integrations').doc('settings');
 

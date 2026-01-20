@@ -57,17 +57,15 @@ export default function SeedPage() {
 
         batch.set(navRef, {
             roleAccess: {
-                SUPER_ADMIN: ["dashboard","obrolan","kontak","prospek","costing-harga","penawaran","tagihan","pesanan","pengaturan","profil","navigasi","integrasi","users","teams","pipeline"],
+                SUPER_ADMIN: ["dashboard","obrolan","kontak","prospek","costing-harga","penawaran","tagihan","pesanan","pengaturan","profil","navigasi","integrasi","users","teams","pipeline", "sales-config"],
                 HEAD_SALES: ["dashboard","obrolan","kontak","prospek","penawaran","tagihan","pesanan","pengaturan","profil"],
                 SALES: ["dashboard","obrolan","kontak","prospek","pengaturan","profil"]
             }
         }, { merge: true });
 
         batch.set(integrationsRef, {
-            N8N_WEBHOOK_URL:"",
-            CRM_PUBLIC_WEBHOOK_SECRET:"",
-            WAHA_API_URL:"",
-            flags:{ inboundEnabled:false, outboundEnabled:false }
+            waha: { baseUrl: "" },
+            flags:{ inboundEnabled: false, outboundEnabled: false, captureFromNow: true }
         }, { merge: true });
         
         await batch.commit();
@@ -93,7 +91,7 @@ export default function SeedPage() {
     setIsCreatingAdmin(true);
 
     const adminEmail = 'greenlab@gmail.com';
-    const adminPassword = 'password123'; // Use a more secure password in a real app
+    const adminPassword = 'password123';
 
     try {
       // 1. Create user in Firebase Auth
@@ -150,7 +148,7 @@ export default function SeedPage() {
         <div className="p-4 border rounded-lg">
             <h3 className="font-semibold">Initial Setup</h3>
             <p className="text-sm text-muted-foreground mt-1">
-                Creates the default team (MSBD) and necessary settings documents (pipeline, navigation). This only needs to be run once.
+                Creates the default team (MSBD) and necessary settings documents (pipeline, navigation, integrations). This only needs to be run once.
             </p>
             <Button onClick={handleInitSetup} disabled={isInitializing} className="mt-4">
             {isInitializing ? 'Initializing...' : 'Initialize Setup'}

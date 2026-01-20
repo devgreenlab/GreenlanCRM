@@ -10,7 +10,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
+        body: ['Plus Jakarta Sans', 'sans-serif'],
         headline: ['Belleza', 'sans-serif'],
         serif: ['Alegreya', 'serif'],
         code: ['monospace'],

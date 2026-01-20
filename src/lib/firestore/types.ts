@@ -39,13 +39,13 @@ export type Lead = {
   customerName: string;
   phone: string; // The customer's phone number
   stage: string;
-  lastInboundAt?: Timestamp;
-  lastOutboundAt?: Timestamp;
+  lastMessageAt?: Timestamp;
   lastMessagePreview?: string;
   createdAt?: Timestamp;
   updatedAt?: Timestamp;
   chatId: string; // The customer's whatsapp ID, e.g., 628...@c.us
   wahaSession: string; // The WAHA session of the sales owner
+  unreadCount?: number;
 };
 
 export type Deal = {
@@ -74,6 +74,17 @@ export type Activity = {
   createdAt: Timestamp;
 };
 
+export type Message = {
+    id: string;
+    direction: 'in' | 'out';
+    text: string;
+    session: string;
+    timestamp: Timestamp;
+    actorUid?: string; // For outbound messages
+    status?: 'sent' | 'delivered' | 'read' | 'failed';
+    raw?: any; // Raw payload from WAHA
+};
+
 export type RoleAccess = {
   SUPER_ADMIN: string[];
   HEAD_SALES: string[];
@@ -95,13 +106,7 @@ export type IntegrationSettings = {
     id?: string;
     waha: {
         baseUrl: string;
-        session: string; // Default session, can be overridden by user
     };
-    n8n: {
-        inboundWebhookUrl: string;
-        outboundWebhookUrl: string;
-    };
-    // Public metadata about secrets, the actual secrets are stored server-side
     secrets?: {
         crmWebhookSecret?: string;
         wahaApiKeyLast4?: string;
@@ -110,6 +115,7 @@ export type IntegrationSettings = {
     flags: {
         inboundEnabled: boolean;
         outboundEnabled: boolean;
+        captureFromNow: boolean;
     };
     updatedAt?: Timestamp;
     updatedBy?: string; // UID
@@ -120,14 +126,17 @@ export type AuditLog = {
     action: 
       | 'SAVE_INTEGRATION_SETTINGS' 
       | 'SET_WAHA_KEY' 
-      | 'CLEAR_WAHA_KEY' 
+      | 'CLEAR_WAHA_KEY'
+      | 'TEST_WAHA_CONNECTION'
       | 'SEND_WA_ATTEMPT' 
       | 'SEND_WA_SUCCESS' 
       | 'SEND_WA_FAIL'
       | 'WAHA_SESSION_START'
       | 'WAHA_SESSION_STOP'
       | 'WAHA_SESSION_LOGOUT'
-      | 'WAHA_SESSION_STATUS';
+      | 'WAHA_SESSION_STATUS'
+      | 'INBOUND_WA_RECEIVED'
+      | 'INBOUND_WA_FAILED';
     byUid: string;
     at: Timestamp;
     result: 'SUCCESS' | 'FAILURE';

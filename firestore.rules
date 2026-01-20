@@ -105,11 +105,22 @@ service cloud.firestore {
         // List is available to all active users, but will be filtered by queries on the client.
         allow list: if isActive();
         
-        // Super Admins can write anywhere. Others can write if the lead belongs to their team.
+        // Writes are allowed if you are an admin or it's in your team.
+        // Server-side processes (like inbound webhooks) will bypass these rules.
         allow write: if isActive() && (
             isSuperAdmin() ||
             ( (isHeadSales() || isSales()) && request.resource.data.teamId == userTeamId() )
         );
+
+        // --- Messages Subcollection ---
+        match /messages/{messageId} {
+          // You can read messages if you can read the parent lead.
+          allow read: if get(/databases/$(database)/documents/leads/$(leadId)).data.ownerUid == request.auth.uid ||
+                         (isHeadSales() && get(/databases/$(database)/documents/leads/$(leadId)).data.teamId == userTeamId()) ||
+                         isSuperAdmin();
+          // Messages can only be written by the server (via webhooks or the /api/wa/send endpoint).
+          allow write: if false;
+        }
     }
 
     match /deals/{dealId} {

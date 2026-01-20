@@ -8,7 +8,7 @@ import type { IntegrationSettings } from '@/lib/firestore/types';
 
 export async function GET(request: Request) {
   try {
-    const { uid } = await verifySuperAdmin(request);
+    await verifySuperAdmin(request);
     
     const db = getAdminFirestore();
     const settingsRef = db.collection('integrations').doc('settings');
@@ -19,10 +19,12 @@ export async function GET(request: Request) {
     }
 
     const settings = doc.data() as IntegrationSettings;
-    // Ensure secrets are not sent to the client, even though they shouldn't be here anyway.
+
+    // Ensure sensitive parts of secrets are not sent to the client.
     // We only send the public metadata like wahaApiKeyLast4.
-    if (settings?.secrets) {
-        // This is a safeguard; actual secret values are in a separate, inaccessible collection.
+    if (settings?.secrets?.crmWebhookSecret) {
+        // Redact the secret before sending to client
+        settings.secrets.crmWebhookSecret = '********';
     }
 
     return NextResponse.json(settings, { status: 200 });
@@ -48,18 +50,20 @@ export async function POST(request: Request) {
     const settingsRef = db.collection('integrations').doc('settings');
     
     // We only update non-secret fields here. Secrets are handled by their own endpoints.
-    const updatePayload = {
+    const updatePayload: any = {
         'waha.baseUrl': body.waha?.baseUrl || '',
-        'waha.session': body.waha?.session || 'default',
-        'n8n.inboundWebhookUrl': body.n8n?.inboundWebhookUrl || '',
-        'n8n.outboundWebhookUrl': body.n8n?.outboundWebhookUrl || '',
-        'secrets.crmWebhookSecret': body.secrets?.crmWebhookSecret || '',
         'flags.inboundEnabled': body.flags?.inboundEnabled === true,
         'flags.outboundEnabled': body.flags?.outboundEnabled === true,
+        'flags.captureFromNow': body.flags?.captureFromNow === true,
         'updatedBy': uid,
         'updatedAt': FieldValue.serverTimestamp(),
     };
     
+    // Only update the secret if it's provided and not just the redacted placeholder
+    if (body.secrets?.crmWebhookSecret && body.secrets.crmWebhookSecret !== '********') {
+        updatePayload['secrets.crmWebhookSecret'] = body.secrets.crmWebhookSecret;
+    }
+
     await settingsRef.set(updatePayload, { merge: true });
 
     await createAuditLog({

@@ -18,7 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldAlert, CheckCircle, XCircle } from 'lucide-react';
+import { ShieldAlert, CheckCircle, XCircle, Power, PowerOff } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
@@ -36,11 +36,6 @@ import {
 const settingsFormSchema = z.object({
   waha: z.object({
     baseUrl: z.string().url('Must be a valid URL (e.g., https://waha.example.com)').or(z.literal('')),
-    session: z.string(),
-  }),
-  n8n: z.object({
-    inboundWebhookUrl: z.string().url('Must be a valid URL').or(z.literal('')),
-    outboundWebhookUrl: z.string().url('Must be a valid URL').or(z.literal('')),
   }),
   secrets: z.object({
     crmWebhookSecret: z.string(),
@@ -48,13 +43,10 @@ const settingsFormSchema = z.object({
   flags: z.object({
     inboundEnabled: z.boolean(),
     outboundEnabled: z.boolean(),
+    captureFromNow: z.boolean(),
   }),
 });
 
-
-const wahaKeySchema = z.object({
-  apiKey: z.string().min(10, 'A valid API key is required'),
-});
 
 function PageSkeleton() {
     return (
@@ -90,16 +82,16 @@ export default function IntegrasiPage() {
   const [isFetching, setIsFetching] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
   const [isSettingKey, setIsSettingKey] = React.useState(false);
+  const [isTesting, setIsTesting] = React.useState(false);
 
   const [wahaApiKey, setWahaApiKey] = React.useState('');
 
   const form = useForm<z.infer<typeof settingsFormSchema>>({
     resolver: zodResolver(settingsFormSchema),
     defaultValues: {
-        waha: { baseUrl: '', session: 'default' },
-        n8n: { inboundWebhookUrl: '', outboundWebhookUrl: '' },
+        waha: { baseUrl: '' },
         secrets: { crmWebhookSecret: '' },
-        flags: { inboundEnabled: false, outboundEnabled: false },
+        flags: { inboundEnabled: false, outboundEnabled: false, captureFromNow: true },
     },
   });
 
@@ -119,10 +111,13 @@ export default function IntegrasiPage() {
         const data = await response.json();
         setSettings(data);
         form.reset({
-            waha: { baseUrl: data.waha?.baseUrl || '', session: data.waha?.session || 'default' },
-            n8n: { inboundWebhookUrl: data.n8n?.inboundWebhookUrl || '', outboundWebhookUrl: data.n8n?.outboundWebhookUrl || '' },
+            waha: { baseUrl: data.waha?.baseUrl || '' },
             secrets: { crmWebhookSecret: data.secrets?.crmWebhookSecret || '' },
-            flags: { inboundEnabled: data.flags?.inboundEnabled || false, outboundEnabled: data.flags?.outboundEnabled || false },
+            flags: { 
+              inboundEnabled: data.flags?.inboundEnabled || false, 
+              outboundEnabled: data.flags?.outboundEnabled || false,
+              captureFromNow: data.flags?.captureFromNow === undefined ? true : data.flags.captureFromNow
+            },
         });
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Error', description: error.message });
@@ -179,7 +174,7 @@ export default function IntegrasiPage() {
         }
         toast({ title: 'Success', description: 'WAHA API Key has been set.' });
         setWahaApiKey('');
-        await fetchSettings(); // Refresh settings to show new metadata
+        await fetchSettings();
     } catch(error: any) {
          toast({ variant: 'destructive', title: 'Error', description: error.message });
     } finally {
@@ -202,6 +197,26 @@ export default function IntegrasiPage() {
     }
   }
 
+  async function onTestConnection() {
+    setIsTesting(true);
+     try {
+        const headers = await getAuthHeader();
+        const response = await fetch('/api/admin/integrations/test-waha', { 
+            method: 'POST',
+            headers
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to test connection.');
+        }
+        toast({ title: 'Success', description: result.message });
+    } catch(error: any) {
+        toast({ variant: 'destructive', title: 'Connection Failed', description: error.message });
+    } finally {
+        setIsTesting(false);
+    }
+  }
+
   if (isProfileLoading || isFetching) {
     return <PageSkeleton />;
   }
@@ -221,54 +236,29 @@ export default function IntegrasiPage() {
       <Card>
         <CardHeader>
           <CardTitle>Integration Settings</CardTitle>
-          <CardDescription>Configure integrations with third-party services like WAHA (WhatsApp) and n8n.</CardDescription>
+          <CardDescription>Configure integrations with third-party services like WAHA (WhatsApp).</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={form.handleSubmit(onSaveSettings)} className="space-y-8">
-            {/* WAHA Settings */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">WAHA (WhatsApp)</h3>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="waha.baseUrl">Base URL</Label>
-                    <Input id="waha.baseUrl" {...form.register('waha.baseUrl')} placeholder="https://waha.example.com" />
-                    {form.formState.errors.waha?.baseUrl && <p className="text-sm text-destructive">{form.formState.errors.waha.baseUrl.message}</p>}
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="waha.session">Default Session Name</Label>
-                    <Input id="waha.session" {...form.register('waha.session')} />
-                    {form.formState.errors.waha?.session && <p className="text-sm text-destructive">{form.formState.errors.waha.session.message}</p>}
-                </div>
+              <div className="space-y-2">
+                  <Label htmlFor="waha.baseUrl">Base URL</Label>
+                  <Input id="waha.baseUrl" {...form.register('waha.baseUrl')} placeholder="https://waha.example.com" />
+                  {form.formState.errors.waha?.baseUrl && <p className="text-sm text-destructive">{form.formState.errors.waha.baseUrl.message}</p>}
               </div>
             </div>
             
-            {/* n8n Settings */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium">n8n</h3>
-               <div className="space-y-2">
-                <Label htmlFor="n8n.inboundWebhookUrl">Inbound Webhook URL</Label>
-                <Input id="n8n.inboundWebhookUrl" {...form.register('n8n.inboundWebhookUrl')} placeholder="https://n8n.example.com/webhook/..." />
-                {form.formState.errors.n8n?.inboundWebhookUrl && <p className="text-sm text-destructive">{form.formState.errors.n8n.inboundWebhookUrl.message}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="n8n.outboundWebhookUrl">Outbound Webhook URL</Label>
-                <Input id="n8n.outboundWebhookUrl" {...form.register('n8n.outboundWebhookUrl')} placeholder="https://n8n.example.com/webhook/..." />
-                {form.formState.errors.n8n?.outboundWebhookUrl && <p className="text-sm text-destructive">{form.formState.errors.n8n.outboundWebhookUrl.message}</p>}
-              </div>
-            </div>
-
-            {/* Secrets */}
-             <div className="space-y-4">
                 <h3 className="text-lg font-medium">Secrets</h3>
                  <div className="space-y-2">
                     <Label htmlFor="secrets.crmWebhookSecret">CRM Webhook Secret</Label>
                     <Input id="secrets.crmWebhookSecret" {...form.register('secrets.crmWebhookSecret')} type="password" />
-                     <p className="text-xs text-muted-foreground">Shared secret for validating webhooks from this CRM to n8n.</p>
+                     <p className="text-xs text-muted-foreground">Shared secret for validating inbound webhooks from WAHA.</p>
                     {form.formState.errors.secrets?.crmWebhookSecret && <p className="text-sm text-destructive">{form.formState.errors.secrets.crmWebhookSecret.message}</p>}
                 </div>
             </div>
 
-            {/* Flags */}
             <div className="space-y-4">
                 <h3 className="text-lg font-medium">Flags</h3>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-lg border p-4 gap-4">
@@ -285,11 +275,22 @@ export default function IntegrasiPage() {
                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-lg border p-4 gap-4">
                     <div className="space-y-0.5">
                         <Label>Enable Outbound Messages</Label>
-                        <p className="text-xs text-muted-foreground">Allow sending messages via n8n workflows.</p>
+                        <p className="text-xs text-muted-foreground">Allow sending messages from the CRM via WAHA.</p>
                     </div>
                      <Controller
                         control={form.control}
                         name="flags.outboundEnabled"
+                        render={({ field }) => <Switch checked={field.value} onCheckedChange={field.onChange} />}
+                    />
+                </div>
+                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-lg border p-4 gap-4">
+                    <div className="space-y-0.5">
+                        <Label>Capture Messages From Now</Label>
+                        <p className="text-xs text-muted-foreground">If enabled, ignore webhook events for messages sent before the service was started.</p>
+                    </div>
+                     <Controller
+                        control={form.control}
+                        name="flags.captureFromNow"
                         render={({ field }) => <Switch checked={field.value} onCheckedChange={field.onChange} />}
                     />
                 </div>
@@ -307,7 +308,7 @@ export default function IntegrasiPage() {
       <Card>
         <CardHeader>
             <CardTitle>WAHA API Key Management</CardTitle>
-            <CardDescription>The API Key is write-only and cannot be read after being set. It is stored securely on the server.</CardDescription>
+            <CardDescription>The API Key is write-only and stored securely on the server. It can't be read back.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
             <div className="flex items-start justify-between rounded-lg border p-4">
@@ -330,15 +331,20 @@ export default function IntegrasiPage() {
                         </p>
                     )}
                 </div>
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm" disabled={!settings.secrets?.wahaApiKeyLast4}>Clear Key</Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently clear the WAHA API Key. You will need to set a new one to re-enable the integration.</AlertDialogDescription></AlertDialogHeader>
-                        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={onClearWahaKey}>Confirm</AlertDialogAction></AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={onTestConnection} disabled={isTesting || !settings.secrets?.wahaApiKeyLast4}>
+                      {isTesting ? 'Testing...' : 'Test Connection'}
+                  </Button>
+                  <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm" disabled={!settings.secrets?.wahaApiKeyLast4}>Clear Key</Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                          <AlertDialogHeader><AlertDialogTitle>Are you sure?</AlertDialogTitle><AlertDialogDescription>This will permanently clear the WAHA API Key. You will need to set a new one to re-enable the integration.</AlertDialogDescription></AlertDialogHeader>
+                          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={onClearWahaKey}>Confirm</AlertDialogAction></AlertDialogFooter>
+                      </AlertDialogContent>
+                  </AlertDialog>
+                </div>
             </div>
 
             <div className="space-y-2">
