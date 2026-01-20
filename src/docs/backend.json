@@ -117,32 +117,18 @@
     },
     "IntegrationSetting": {
       "title": "Integration Setting",
-      "description": "Stores the configuration for external integrations like WAHA and SumoPod.",
+      "description": "Stores the configuration for the WAHA integration.",
       "type": "object",
       "properties": {
-        "waha": {
-          "type": "object",
-          "properties": {
-            "baseUrl": { "type": "string", "format": "uri" }
-          }
+        "wahaBaseUrl": { 
+            "type": "string", 
+            "format": "uri",
+            "description": "The root URL for the WAHA API."
         },
-        "secrets": {
-          "type": "object",
-          "properties": {
-            "crmWebhookSecret": { "type": "string" },
-            "wahaApiKeyLast4": { "type": "string" },
-            "wahaApiKeyRotatedAt": { "type": "string", "format": "date-time" },
-            "sumopodApiKeyLast4": { "type": "string" },
-            "sumopodApiKeyRotatedAt": { "type": "string", "format": "date-time" }
-          }
-        },
-        "flags": {
-          "type": "object",
-          "properties": {
-            "inboundEnabled": { "type": "boolean" },
-            "outboundEnabled": { "type": "boolean" },
-            "captureFromNow": { "type": "boolean", "description": "If true, ignore webhook events for messages sent before the service was started."}
-          }
+        "wahaAuthMode": {
+            "type": "string",
+            "enum": ["X-Api-Key", "Bearer"],
+            "description": "The authentication method to use for WAHA."
         },
         "updatedAt": { "type": "string", "format": "date-time" },
         "updatedBy": { "type": "string", "description": "UID of the user who last updated the settings." }
@@ -154,7 +140,7 @@
         "type": "object",
         "description": "Records important actions performed by users, especially admins.",
         "properties": {
-            "action": { "type": "string", "enum": ["SAVE_INTEGRATION_SETTINGS", "SET_WAHA_KEY", "CLEAR_WAHA_KEY", "TEST_WAHA_CONNECTION", "SEND_WA_ATTEMPT", "SEND_WA_SUCCESS", "SEND_WA_FAIL", "WAHA_SESSION_START", "WAHA_SESSION_STOP", "WAHA_SESSION_LOGOUT", "WAHA_SESSION_STATUS", "INBOUND_WA_RECEIVED", "INBOUND_WA_FAILED", "SET_SUMOPOD_KEY", "CLEAR_SUMOPOD_KEY", "TEST_SUMOPOD_CONNECTION"] },
+            "action": { "type": "string", "enum": ["SAVE_WAHA_CONFIG", "SET_WAHA_KEY", "TEST_WAHA_CONNECTION"] },
             "byUid": { "type": "string", "description": "The UID of the user who performed the action." },
             "at": { "type": "string", "format": "date-time" },
             "result": { "type": "string", "enum": ["SUCCESS", "FAILURE"] },
@@ -232,16 +218,18 @@
       },
       {
         "path": "/integrations/settings",
-        "definition": { "schema": { "$ref": "#/entities/IntegrationSetting" }, "description": "Stores public integration settings and metadata about secrets." }
+        "definition": { "schema": { "$ref": "#/entities/IntegrationSetting" }, "description": "Stores public integration settings." }
+      },
+       {
+        "path": "/integrations_secrets/waha",
+        "definition": { "schema": { "type": "object", "properties": { "apiKey": { "type": "string" } } }, "description": "Stores the secret WAHA API key. Server-access only." }
       },
       {
         "path": "/audit_logs/{logId}",
         "definition": { "schema": { "$ref": "#/entities/AuditLog" }, "description": "Stores audit logs for important admin actions." }
       }
     ],
-    "reasoning": "This Firestore structure is designed to support a Greenlab CRM application. The entities cover all core aspects of a CRM: teams, users, contacts, leads, deals, and activities. It now includes a subcollection for messages under each lead to properly store chat history. It also includes settings for pipelines and integrations, and a collection for logs. Security rules will ensure data is accessed only by authorized roles."
+    "reasoning": "This Firestore structure is designed to support a Greenlab CRM application. The entities cover all core aspects of a CRM: teams, users, contacts, leads, deals, and activities. It includes settings for navigation and pipelines. The integration settings are now simplified, with secrets stored in a separate, server-only collection for security."
   }
 }
-    
-
     

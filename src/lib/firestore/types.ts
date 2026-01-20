@@ -104,19 +104,8 @@ export type PipelineSettings = {
 
 export type IntegrationSettings = {
     id?: string;
-    waha: {
-        baseUrl: string;
-    };
-    secrets?: {
-        crmWebhookSecret?: string;
-        wahaApiKeyLast4?: string;
-        wahaApiKeyRotatedAt?: Timestamp;
-    };
-    flags: {
-        inboundEnabled: boolean;
-        outboundEnabled: boolean;
-        captureFromNow: boolean;
-    };
+    wahaBaseUrl?: string;
+    wahaAuthMode?: 'X-Api-Key' | 'Bearer';
     updatedAt?: Timestamp;
     updatedBy?: string; // UID
 };
@@ -124,23 +113,12 @@ export type IntegrationSettings = {
 export type AuditLog = {
     id: string;
     action: 
-      | 'SAVE_INTEGRATION_SETTINGS' 
-      | 'SET_WAHA_KEY' 
-      | 'CLEAR_WAHA_KEY'
-      | 'TEST_WAHA_CONNECTION'
-      | 'SEND_WA_ATTEMPT' 
-      | 'SEND_WA_SUCCESS' 
-      | 'SEND_WA_FAIL'
-      | 'WAHA_SESSION_START'
-      | 'WAHA_SESSION_STOP'
-      | 'WAHA_SESSION_LOGOUT'
-      | 'WAHA_SESSION_STATUS'
-      | 'INBOUND_WA_RECEIVED'
-      | 'INBOUND_WA_FAILED';
+      | 'SAVE_WAHA_CONFIG' 
+      | 'SET_WAHA_KEY'
+      | 'TEST_WAHA_CONNECTION';
     byUid: string;
     at: Timestamp;
     result: 'SUCCESS' | 'FAILURE';
     message?: string;
 };
-
     

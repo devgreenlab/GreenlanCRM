@@ -1,0 +1,68 @@
+// src/lib/server/waha.ts
+import { getAdminServices } from '@/lib/firebase/server-app';
+import type { IntegrationSettings } from '@/lib/firestore/types';
+
+/**
+ * Fetches the WAHA configuration (URL and API key) from server-side storage.
+ * @returns {Promise<{baseUrl: string, apiKey: string, authMode: 'X-Api-Key' | 'Bearer'}>}
+ * @throws {Error} if configuration is missing.
+ */
+export async function getWahaConfig() {
+    const { firestore: db } = getAdminServices();
+    
+    const settingsRef = db.collection('integrations').doc('settings');
+    const secretRef = db.collection('integrations_secrets').doc('waha');
+
+    const [settingsDoc, secretDoc] = await Promise.all([settingsRef.get(), secretRef.get()]);
+
+    const settings = settingsDoc.data() as IntegrationSettings | undefined;
+    const secret = secretDoc.data();
+
+    if (!settings?.wahaBaseUrl) {
+        throw new Error('WAHA Base URL not configured.');
+    }
+
+    if (!secret?.apiKey) {
+        throw new Error('WAHA API Key not set.');
+    }
+
+    return { 
+        baseUrl: settings.wahaBaseUrl,
+        apiKey: secret.apiKey,
+        authMode: settings.wahaAuthMode || 'X-Api-Key', // Default to X-Api-Key
+    };
+}
+
+
+/**
+ * A centralized fetch function for making requests to the WAHA API.
+ * It automatically retrieves the configuration and applies the correct auth headers.
+ * @param endpoint - The WAHA API endpoint to call (e.g., '/api/sessions').
+ * @param options - Standard fetch options.
+ * @returns {Promise<Response>} The fetch Response object.
+ */
+export async function wahaFetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
+    const { baseUrl, apiKey, authMode } = await getWahaConfig();
+
+    const url = `${baseUrl}${endpoint}`;
+    
+    const headers = new Headers(options.headers || {});
+    
+    if (authMode === 'Bearer') {
+        headers.set('Authorization', `Bearer ${apiKey}`);
+    } else { // Default to X-Api-Key
+        headers.set('X-Api-Key', apiKey);
+    }
+    
+    if (!headers.has('Content-Type') && options.body) {
+        headers.set('Content-Type', 'application/json');
+    }
+
+    console.log(`[wahaFetch] Calling: ${options.method || 'GET'} ${url} with auth mode: ${authMode}`);
+
+    return fetch(url, {
+        ...options,
+        headers,
+    });
+}
+    
