@@ -4,7 +4,7 @@ import type { IntegrationSettings } from '@/lib/firestore/types';
 
 /**
  * Fetches the WAHA configuration (URL and API key) from server-side storage.
- * @returns {Promise<{baseUrl: string, apiKey: string, authMode: 'X-Api-Key' | 'Bearer'}>}
+ * @returns {Promise<{baseUrl: string, apiKey: string}>}
  * @throws {Error} if configuration is missing.
  */
 export async function getWahaConfig() {
@@ -32,30 +32,26 @@ export async function getWahaConfig() {
     return { 
         baseUrl: normalizedUrl,
         apiKey: secret.apiKey,
-        authMode: settings.wahaAuthMode || 'X-Api-Key', // Default to X-Api-Key
     };
 }
 
 
 /**
  * A centralized fetch function for making requests to the WAHA API.
- * It automatically retrieves the configuration and applies the correct auth headers.
+ * It automatically retrieves the configuration and applies the X-Api-Key auth header.
  * @param endpoint - The WAHA API endpoint to call (e.g., '/api/sessions').
  * @param options - Standard fetch options.
  * @returns {Promise<Response>} The fetch Response object.
  */
 export async function wahaFetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
-    const { baseUrl, apiKey, authMode } = await getWahaConfig();
+    const { baseUrl, apiKey } = await getWahaConfig();
 
     const url = `${baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
     
     const headers = new Headers(options.headers || {});
     
-    if (authMode === 'Bearer') {
-        headers.set('Authorization', `Bearer ${apiKey}`);
-    } else { // Default to X-Api-Key
-        headers.set('X-Api-Key', apiKey);
-    }
+    // Force X-Api-Key as per FASE 1
+    headers.set('X-Api-Key', apiKey);
     
     if (!headers.has('Content-Type') && options.body) {
         headers.set('Content-Type', 'application/json');
@@ -63,7 +59,7 @@ export async function wahaFetch(endpoint: string, options: RequestInit = {}): Pr
 
     headers.set('Accept', 'application/json');
 
-    console.log(`[wahaFetch] Calling: ${options.method || 'GET'} ${url} with auth mode: ${authMode}`);
+    console.log(`[wahaFetch] Calling: ${options.method || 'GET'} ${url}`);
 
     return fetch(url, {
         ...options,

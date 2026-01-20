@@ -55,7 +55,7 @@ export async function POST(request: Request) {
                 result: 'FAILURE',
                 message: `WAHA send failed for ${chatId}. Status: ${wahaResponse.status}. Response: ${JSON.stringify(responseData)}`
             });
-            return NextResponse.json(responseData, { status: wahaResponse.status });
+            return NextResponse.json({ ok: false, ...responseData }, { status: wahaResponse.status });
         }
 
         await createAuditLog({
