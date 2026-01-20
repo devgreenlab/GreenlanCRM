@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { collection, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, Timestamp } from 'firebase/firestore';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { FIRESTORE_COLLECTIONS } from '@/lib/firestore/collections';
 import type { Lead, Message } from '@/lib/firestore/types';
@@ -17,8 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
-import { id as idLocale } from 'date-fns/locale';
+import { format, isToday, isYesterday } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/firebase';
 
@@ -256,10 +255,8 @@ export default function ObrolanPage() {
   const whatsappLeadsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     const coll = collection(firestore, FIRESTORE_COLLECTIONS.leads);
-    const baseFilters = [
-        where('source', '==', 'whatsapp'),
-        orderBy('lastMessageAt', 'desc')
-    ];
+    // REMOVED: orderBy('lastMessageAt', 'desc')
+    const baseFilters = [where('source', '==', 'whatsapp')];
 
     if (userProfile.role === 'SUPER_ADMIN') {
       return query(coll, ...baseFilters);
@@ -283,20 +280,36 @@ export default function ObrolanPage() {
   
   const filteredLeads = React.useMemo(() => {
     if (!leads) return [];
-    if (!searchQuery) return leads;
-    return leads.filter(lead => 
+    
+    // Client-side sorting
+    const sortedLeads = [...leads].sort((a, b) => {
+        const timeA = a.lastMessageAt?.toMillis() || a.createdAt?.toMillis() || 0;
+        const timeB = b.lastMessageAt?.toMillis() || b.createdAt?.toMillis() || 0;
+        return timeB - timeA;
+    });
+
+    if (!searchQuery) return sortedLeads;
+
+    return sortedLeads.filter(lead => 
         (lead.customerName && lead.customerName.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (lead.phone && lead.phone.includes(searchQuery))
     );
   }, [leads, searchQuery]);
   
   React.useEffect(() => {
+    // Automatically select the first lead when the list is loaded or filtered
     if (filteredLeads.length > 0 && !selectedLead) {
       setSelectedLead(filteredLeads[0]);
     } else if (filteredLeads.length > 0 && selectedLead) {
+      // If a lead is already selected, check if it still exists in the filtered list.
+      // If not, select the new first lead. This handles cases where a search query
+      // removes the currently selected lead from view.
       const selectedExists = filteredLeads.some(lead => lead.id === selectedLead.id);
-      if (!selectedExists) setSelectedLead(filteredLeads[0]);
+      if (!selectedExists) {
+        setSelectedLead(filteredLeads[0]);
+      }
     } else if (filteredLeads.length === 0) {
+      // If there are no leads, clear the selection
       setSelectedLead(null);
     }
   }, [filteredLeads, selectedLead]);
