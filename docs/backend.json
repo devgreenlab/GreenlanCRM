@@ -240,3 +240,4 @@
     "reasoning": "This Firestore structure is designed to support a Greenlab CRM application. The entities cover all core aspects of a CRM: teams, users, contacts, leads, deals, and activities. It now includes a subcollection for messages under each lead to properly store chat history. It also includes settings for pipelines and integrations, and a collection for logs. Security rules will ensure data is accessed only by authorized roles."
   }
 }
+    

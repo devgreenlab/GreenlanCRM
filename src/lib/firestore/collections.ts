@@ -9,3 +9,5 @@ export const FIRESTORE_COLLECTIONS = {
   integrationSettings: 'integrations/settings',
   auditLogs: 'audit_logs',
 };
+
+    

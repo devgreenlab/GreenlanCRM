@@ -265,3 +265,5 @@ export default function SalesConfigPage() {
     </Dialog>
   );
 }
+
+    

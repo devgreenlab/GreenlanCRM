@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { verifySuperAdmin } from '@/lib/server/auth-utils';
 import { createAuditLog } from '@/lib/server/audit';
 import { getAdminFirestore } from '@/lib/server/firebase-admin';
+import { decrypt } from '@/lib/server/crypto';
 
 async function getWahaConfig() {
     const db = getAdminFirestore();
@@ -14,11 +15,13 @@ async function getWahaConfig() {
     }
 
     const secretDoc = await db.collection('integrations_secrets').doc('waha').get();
-    const apiKey = secretDoc.exists ? secretDoc.data()?.apiKey : null;
+    const encryptedApiKey = secretDoc.exists ? secretDoc.data()?.apiKey : null;
 
-    if (!apiKey) {
+    if (!encryptedApiKey) {
         throw new Error('WAHA API Key is not set.');
     }
+    
+    const apiKey = decrypt(encryptedApiKey);
 
     return {
         baseUrl: settings.waha.baseUrl,
@@ -88,3 +91,5 @@ export async function GET(request: Request) {
         return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }
+
+    

@@ -40,3 +40,5 @@ export function decrypt(text: string): string {
     // For ROT13, decryption is the same as encryption
     return encrypt(text);
 }
+
+    

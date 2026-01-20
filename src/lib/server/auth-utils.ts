@@ -79,3 +79,5 @@ export async function verifyAuthenticatedUser(request: Request, allowedRoles: Us
 
     return userProfile;
 }
+
+    

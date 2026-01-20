@@ -23,3 +23,5 @@ export async function createAuditLog(payload: Omit<AuditLog, 'id' | 'at'>): Prom
         // Logging the failure is sufficient.
     }
 }
+
+    
