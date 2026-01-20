@@ -32,11 +32,10 @@ async function deleteWahaApiKey(): Promise<void> {
 
 
 export async function POST(request: Request) {
-    let userUid: string = 'development-user-uid'; // Mock user for development
+    let userUid: string;
     try {
-        // const { uid } = await verifySuperAdmin(request); // Temporarily disabled for development
-        // userUid = uid;
-        const uid = userUid;
+        const { uid } = await verifySuperAdmin(request);
+        userUid = uid;
 
         const body = await request.json();
         
@@ -59,13 +58,13 @@ export async function POST(request: Request) {
                 wahaApiKeyLast4: apiKey.slice(-4),
                 wahaApiKeyRotatedAt: FieldValue.serverTimestamp(),
             },
-            updatedBy: uid,
+            updatedBy: userUid,
             updatedAt: FieldValue.serverTimestamp(),
         }, { merge: true });
 
         await createAuditLog({
             action: 'SET_WAHA_KEY',
-            byUid: uid,
+            byUid: userUid,
             result: 'SUCCESS',
             message: 'Successfully set/rotated WAHA API key.',
         });
@@ -95,11 +94,10 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-    let userUid: string = 'development-user-uid'; // Mock user for development
+    let userUid: string;
     try {
-        // const { uid } = await verifySuperAdmin(request); // Temporarily disabled for development
-        // userUid = uid;
-        const uid = userUid;
+        const { uid } = await verifySuperAdmin(request);
+        userUid = uid;
         
         // 1. Delete the key from the secure store
         await deleteWahaApiKey();
@@ -111,7 +109,7 @@ export async function DELETE(request: Request) {
         const metadataUpdate = {
             'secrets.wahaApiKeyLast4': FieldValue.delete(),
             'secrets.wahaApiKeyRotatedAt': FieldValue.delete(),
-             'updatedBy': uid,
+             'updatedBy': userUid,
             'updatedAt': FieldValue.serverTimestamp(),
         };
 
@@ -119,7 +117,7 @@ export async function DELETE(request: Request) {
 
         await createAuditLog({
             action: 'CLEAR_WAHA_KEY',
-            byUid: uid,
+            byUid: userUid,
             result: 'SUCCESS',
             message: 'Successfully cleared WAHA API key.',
         });

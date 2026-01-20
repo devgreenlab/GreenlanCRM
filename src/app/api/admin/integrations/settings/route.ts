@@ -8,7 +8,7 @@ import type { IntegrationSettings } from '@/lib/firestore/types';
 
 export async function GET(request: Request) {
   try {
-    // await verifySuperAdmin(request); // Temporarily disabled for development
+    await verifySuperAdmin(request);
     
     const { firestore: db } = getAdminServices();
     const settingsRef = db.collection('integrations').doc('settings');
@@ -39,10 +39,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  let userUid: string = 'development-user-uid'; // Mock user for development
+  let userUid: string;
   try {
-    // const { uid } = await verifySuperAdmin(request); // Temporarily disabled for development
-    // userUid = uid;
+    const { uid } = await verifySuperAdmin(request);
+    userUid = uid;
 
     const body = await request.json();
     
