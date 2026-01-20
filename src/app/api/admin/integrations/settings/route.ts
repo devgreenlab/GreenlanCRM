@@ -48,20 +48,32 @@ export async function POST(request: Request) {
     
     const db = getAdminFirestore();
     const settingsRef = db.collection('integrations').doc('settings');
+    const doc = await settingsRef.get();
+    const currentData = doc.exists ? doc.data() : {};
     
-    // We only update non-secret fields here. Secrets are handled by their own endpoints.
-    const updatePayload: any = {
-        'waha.baseUrl': body.waha?.baseUrl || '',
-        'flags.inboundEnabled': body.flags?.inboundEnabled === true,
-        'flags.outboundEnabled': body.flags?.outboundEnabled === true,
-        'flags.captureFromNow': body.flags?.captureFromNow === true,
-        'updatedBy': uid,
-        'updatedAt': FieldValue.serverTimestamp(),
+    // Construct the payload with the correct nested object structure
+    const updatePayload: Partial<IntegrationSettings> = {
+        waha: {
+            baseUrl: body.waha?.baseUrl || '',
+        },
+        flags: {
+            inboundEnabled: body.flags?.inboundEnabled === true,
+            outboundEnabled: body.flags?.outboundEnabled === true,
+            captureFromNow: body.flags?.captureFromNow === true,
+        },
+        updatedBy: uid,
+        updatedAt: FieldValue.serverTimestamp() as any,
+        secrets: {
+            // Preserve existing secrets that are not part of this form
+            ...(currentData?.secrets || {}),
+        }
     };
     
-    // Only update the secret if it's provided and not just the redacted placeholder
+    // Only update the crmWebhookSecret if it's provided and not just the redacted placeholder
     if (body.secrets?.crmWebhookSecret && body.secrets.crmWebhookSecret !== '********') {
-        updatePayload['secrets.crmWebhookSecret'] = body.secrets.crmWebhookSecret;
+        if(updatePayload.secrets) {
+            updatePayload.secrets.crmWebhookSecret = body.secrets.crmWebhookSecret;
+        }
     }
 
     await settingsRef.set(updatePayload, { merge: true });
@@ -92,5 +104,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
-
-    
