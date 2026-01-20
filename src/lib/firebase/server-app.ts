@@ -1,20 +1,22 @@
-import { getApps, initializeApp, getApp, App } from 'firebase-admin/app';
+import { getApps, initializeApp, getApp, App, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { getFunctions } from 'firebase-admin/functions';
-import { firebaseConfig } from '@/firebase/config';
+
+const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
 function getAdminApp(): App {
   if (getApps().length > 0) {
     return getApp();
   }
 
-  // Explicitly initialize with the projectId from the client config
-  // to ensure alignment between client and server environments.
-  // The Admin SDK will automatically discover other credentials from the environment.
+  if (!serviceAccount) {
+    throw new Error('The FIREBASE_SERVICE_ACCOUNT_KEY environment variable is not set.');
+  }
+
   return initializeApp({
-    projectId: firebaseConfig.projectId,
+    credential: cert(JSON.parse(serviceAccount)),
   });
 }
 
@@ -29,5 +31,3 @@ export const getAdminServices = () => {
     functions: getFunctions(app),
   };
 };
-
-    
