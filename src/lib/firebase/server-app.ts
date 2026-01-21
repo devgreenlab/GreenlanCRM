@@ -17,7 +17,7 @@ function getAdminApp(): App {
   // This overrides any project ID discovered from the server's environment
   // or service account, resolving the "project mismatch" error.
   return initializeApp({
-    projectId: 'studio-7786152721-d1bea',
+    projectId: 'monospace-4',
   }, ADMIN_APP_NAME);
 }
 
@@ -32,3 +32,20 @@ export const getAdminServices = () => {
     functions: getFunctions(app),
   };
 };
+
+export function getBackendFirebaseProjectId(): string | null {
+    try {
+        const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+        if (serviceAccountJson) {
+            const serviceAccount = JSON.parse(serviceAccountJson);
+            return serviceAccount.project_id || null;
+        }
+        
+        // Fallback to the initialized app's project ID if the env var isn't set/parsed
+        const adminApp = getAdminApp();
+        return adminApp.options.projectId || null;
+    } catch (error) {
+        console.error("Could not determine backend Firebase Project ID:", error);
+        return null;
+    }
+}
