@@ -1,3 +1,4 @@
+
 // src/lib/server/auth-utils.ts
 import { getAdminServices } from '@/lib/firebase/server-app';
 import type { UserProfile } from '../firestore/types';
@@ -28,7 +29,7 @@ async function verifyTokenAndGetUser(request: Request): Promise<{ uid: string }>
         console.error("Token verification failed:", error.code, error.message);
         // Check for the specific audience mismatch error to provide a clearer message.
         if (error.code === 'auth/argument-error' && error.message.includes('aud')) {
-             throw new AuthError(`Forbidden: Firebase project mismatch. ${error.message}`, 403);
+             throw new AuthError(`Forbidden: Firebase project mismatch. The frontend app and backend server are configured for different Firebase projects.`, 403);
         }
         throw new AuthError(`Forbidden: Invalid authentication token. Reason: ${error.code || error.message}`, 403);
     }
