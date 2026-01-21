@@ -1,8 +1,0 @@
-{
-  "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/api/admin/waha/config/route": "app/api/admin/waha/config/route.js",
-  "/page": "app/page.js",
-  "/login/page": "app/login/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/pengaturan/integrasi/page": "app/pengaturan/integrasi/page.js"
-}
