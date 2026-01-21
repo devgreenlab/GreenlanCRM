@@ -14,6 +14,7 @@ import {
   UserCog,
   Users,
   View,
+  Bot,
 } from 'lucide-react';
 
 export type SubMenuItem = {
@@ -88,11 +89,11 @@ export const MENU_ITEMS: MenuItem[] = [
     subItems: [
       { key: 'profil', href: '/pengaturan/profil', title: 'Profil', icon: User },
       { key: 'navigasi', href: '/pengaturan/navigasi', title: 'Navigasi', icon: ListFilter },
-      { key: 'integrasi', href: '/pengaturan/integrasi', title: 'Integrasi', icon: Plug },
+      { key: 'integrasi', href: '/pengaturan/integrasi', title: 'Integrasi WAHA', icon: Plug },
+      { key: 'sales-config', href: '/pengaturan/sales-config', title: 'Konfig Sales', icon: Bot },
       { key: 'users', href: '/pengaturan/users', title: 'Users', icon: UserCog },
       { key: 'teams', href: '/pengaturan/teams', title: 'Teams', icon: Shield },
       { key: 'pipeline', href: '/pengaturan/pipeline', title: 'Pipeline', icon: Network },
     ],
   },
 ];
-    

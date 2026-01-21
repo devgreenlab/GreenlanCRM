@@ -16,20 +16,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/page.js"
     ],
-    "/obrolan/page": [
+    "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/obrolan/page.js"
-    ],
-    "/kontak/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/kontak/page.js"
+      "static/chunks/app/login/page.js"
     ],
     "/pengaturan/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/pengaturan/layout.js"
+    ],
+    "/pengaturan/sales-config/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/pengaturan/sales-config/page.js"
     ],
     "/pengaturan/integrasi/page": [
       "static/chunks/webpack.js",
@@ -41,10 +41,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/admin/waha/config/route.js"
     ],
-    "/login/page": [
+    "/tagihan/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/login/page.js"
+      "static/chunks/app/tagihan/page.js"
     ]
   }
 }

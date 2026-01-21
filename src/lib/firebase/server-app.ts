@@ -4,14 +4,19 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
 import { getFunctions } from 'firebase-admin/functions';
 
+const ADMIN_APP_NAME = 'greenlab-crm-admin';
+
 function getAdminApp(): App {
-  if (getApps().length > 0) {
-    return getApp();
+  // Check if the named app already exists to prevent re-initialization.
+  const existingApp = getApps().find(app => app.name === ADMIN_APP_NAME);
+  if (existingApp) {
+    return existingApp;
   }
 
-  // Initialize without arguments. It will use Application Default Credentials.
-  // This is the standard for Firebase App Hosting and other Google Cloud environments.
-  return initializeApp();
+  // For managed environments like Firebase App Hosting, initializing with an
+  // empty object allows the SDK to automatically discover credentials and project
+  // configuration, which is a more robust method.
+  return initializeApp({}, ADMIN_APP_NAME);
 }
 
 // A helper function to get the Firebase admin services

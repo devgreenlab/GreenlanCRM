@@ -227,6 +227,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../src/app/api/admin/sumopod/config/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/sumopod/config">> = Specific
+  const handler = {} as typeof import("../../src/app/api/admin/sumopod/config/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/admin/sumopod/secrets/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/sumopod/secrets">> = Specific
+  const handler = {} as typeof import("../../src/app/api/admin/sumopod/secrets/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../src/app/api/admin/waha/config/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/waha/config">> = Specific
@@ -249,6 +267,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/waha/logout">> = Specific
   const handler = {} as typeof import("../../src/app/api/admin/waha/logout/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/admin/waha/start/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/waha/start">> = Specific
+  const handler = {} as typeof import("../../src/app/api/admin/waha/start/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
@@ -285,6 +312,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/waha/sessions">> = Specific
   const handler = {} as typeof import("../../src/app/api/waha/sessions/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/webhooks/waha/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/webhooks/waha">> = Specific
+  const handler = {} as typeof import("../../src/app/api/webhooks/waha/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

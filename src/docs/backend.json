@@ -117,7 +117,7 @@
     },
     "IntegrationSetting": {
       "title": "Integration Setting",
-      "description": "Stores the configuration for the WAHA integration.",
+      "description": "Stores the configuration for integrations like WAHA and SumoPod.",
       "type": "object",
       "properties": {
         "wahaBaseUrl": { 
@@ -130,6 +130,16 @@
             "enum": ["X-Api-Key", "Bearer"],
             "description": "The authentication method to use for WAHA."
         },
+        "sumopodAdminConsoleUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "The URL for the SumoPod Admin Console."
+        },
+        "sumopodApiDocsUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "The URL for the SumoPod API Documentation."
+        },
         "updatedAt": { "type": "string", "format": "date-time" },
         "updatedBy": { "type": "string", "description": "UID of the user who last updated the settings." }
       }
@@ -140,7 +150,7 @@
         "type": "object",
         "description": "Records important actions performed by users, especially admins.",
         "properties": {
-            "action": { "type": "string", "enum": ["SAVE_WAHA_CONFIG", "SET_WAHA_KEY", "TEST_WAHA_CONNECTION"] },
+            "action": { "type": "string", "enum": ["SAVE_WAHA_CONFIG", "SET_WAHA_KEY", "TEST_WAHA_CONNECTION", "SEND_WA_ATTEMPT", "SEND_WA_SUCCESS", "SEND_WA_FAIL", "WAHA_SESSION_START", "WAHA_SESSION_LOGOUT", "WAHA_SESSION_STATUS", "INBOUND_WA_RECEIVED", "INBOUND_WA_FAILED", "SAVE_SUMOPOD_CONFIG", "SET_SUMOPOD_SECRETS"] },
             "byUid": { "type": "string", "description": "The UID of the user who performed the action." },
             "at": { "type": "string", "format": "date-time" },
             "result": { "type": "string", "enum": ["SUCCESS", "FAILURE"] },
@@ -218,11 +228,15 @@
       },
       {
         "path": "/integrations/settings",
-        "definition": { "schema": { "$ref": "#/entities/IntegrationSetting" }, "description": "Stores public integration settings." }
+        "definition": { "schema": { "$ref": "#/entities/IntegrationSetting" }, "description": "Stores public integration settings for WAHA and SumoPod." }
       },
        {
         "path": "/integrations_secrets/waha",
-        "definition": { "schema": { "type": "object", "properties": { "apiKey": { "type": "string" } } }, "description": "Stores the secret WAHA API key. Server-access only." }
+        "definition": { "schema": { "type": "object", "properties": { "apiKey": { "type": "string" }, "crmWebhookSecret": {"type": "string"} } }, "description": "Stores the secret WAHA API key. Server-access only." }
+      },
+      {
+        "path": "/integrations_secrets/sumopod",
+        "definition": { "schema": { "type": "object", "properties": { "apiKey": { "type": "string" }, "username": {"type": "string"}, "password": {"type": "string"} } }, "description": "Stores the secret SumoPod credentials. Server-access only." }
       },
       {
         "path": "/audit_logs/{logId}",

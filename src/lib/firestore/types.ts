@@ -106,6 +106,8 @@ export type IntegrationSettings = {
     id?: string;
     wahaBaseUrl?: string;
     wahaAuthMode?: 'X-Api-Key' | 'Bearer';
+    sumopodAdminConsoleUrl?: string;
+    sumopodApiDocsUrl?: string;
     updatedAt?: Timestamp;
     updatedBy?: string; // UID
 };
@@ -115,7 +117,17 @@ export type AuditLog = {
     action: 
       | 'SAVE_WAHA_CONFIG' 
       | 'SET_WAHA_KEY'
-      | 'TEST_WAHA_CONNECTION';
+      | 'TEST_WAHA_CONNECTION'
+      | 'SEND_WA_ATTEMPT'
+      | 'SEND_WA_SUCCESS'
+      | 'SEND_WA_FAIL'
+      | 'WAHA_SESSION_START'
+      | 'WAHA_SESSION_LOGOUT'
+      | 'WAHA_SESSION_STATUS'
+      | 'INBOUND_WA_RECEIVED'
+      | 'INBOUND_WA_FAILED'
+      | 'SAVE_SUMOPOD_CONFIG'
+      | 'SET_SUMOPOD_SECRETS';
     byUid: string;
     at: Timestamp;
     result: 'SUCCESS' | 'FAILURE';

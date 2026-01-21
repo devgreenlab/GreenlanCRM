@@ -64,8 +64,8 @@ export default function SeedPage() {
         }, { merge: true });
 
         batch.set(integrationsRef, {
-            waha: { baseUrl: "" },
-            flags:{ inboundEnabled: false, outboundEnabled: false, captureFromNow: true }
+            wahaBaseUrl: "",
+            wahaAuthMode: "X-Api-Key"
         }, { merge: true });
         
         await batch.commit();
@@ -167,5 +167,3 @@ export default function SeedPage() {
     </Card>
   );
 }
-
-    
