@@ -2,18 +2,21 @@
 import { NextResponse } from 'next/server';
 import { verifySuperAdmin, AuthError } from '@/lib/server/auth-utils';
 import { wahaFetch } from '@/lib/server/waha';
+import { createAuditLog } from '@/lib/server/audit';
 
 export const runtime = 'nodejs';
 
 /**
  * GET /api/admin/waha/ping
  * Pings the WAHA instance by checking its version endpoint.
+ * Requires SUPER_ADMIN role.
  */
 export async function GET(request: Request) {
+    let userUid: string;
     try {
-        await verifySuperAdmin(request);
+        const { uid } = await verifySuperAdmin(request);
+        userUid = uid;
 
-        // wahaFetch will throw an error if ENV vars are not set.
         const wahaResponse = await wahaFetch('/api/version');
 
         if (!wahaResponse.ok) {
@@ -23,24 +26,38 @@ export async function GET(request: Request) {
         
         const data = await wahaResponse.json();
 
+        await createAuditLog({
+            action: 'TEST_WAHA_CONNECTION',
+            byUid: uid,
+            result: 'SUCCESS',
+            message: 'Successfully pinged WAHA version endpoint.',
+        });
+
         return NextResponse.json({ 
             message: `Connection to WAHA successful!`,
             ...data 
         });
 
     } catch (error: any) {
-        // Catch AuthError first to return 401/403
-        if (error instanceof AuthError) {
-            return NextResponse.json({ error: error.message }, { status: error.status });
+        const message = error.message || 'An unknown error occurred.';
+        if (userUid!) {
+            await createAuditLog({
+                action: 'TEST_WAHA_CONNECTION',
+                byUid: userUid,
+                result: 'FAILURE',
+                message: message,
+            });
         }
         
-        // Check if the error is due to missing ENV vars from our custom wahaFetch error
-        if (error.message && error.message.includes('WAHA env missing')) {
+        if (error instanceof AuthError) {
+            return NextResponse.json({ error: message }, { status: error.status });
+        }
+        
+        if (message.includes('WAHA env missing')) {
              return NextResponse.json({ error: "WAHA env missing" }, { status: 500 });
         }
         
-        // For other errors (e.g., network issues, WAHA is down), return a generic error.
-        console.error('[API Ping Error]', error.message);
+        console.error('[API /admin/waha/ping] Error:', error.message);
         return NextResponse.json({ error: 'Internal Server Error during ping test.' }, { status: 500 });
     }
 }

@@ -12,22 +12,11 @@ export class AuthError extends Error {
 }
 
 async function verifyTokenAndGetUser(request: Request): Promise<{ uid: string }> {
-    const authHeader = request.headers.get('authorization') || '';
-
-    const startsWithBearer = /^Bearer\s+/i.test(authHeader);
+    const authHeader = request.headers.get('authorization') || request.headers.get('Authorization') || '';
+    const token = authHeader.replace(/^Bearer\s+/, '').trim();
     
-    if (!startsWithBearer) {
-        const errorMsg = 'Unauthorized: Authorization header format must be "Bearer <token>".';
-        console.warn(`Auth verification failed: ${errorMsg}`);
-        throw new AuthError(errorMsg, 401);
-    }
-    
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-    
-    console.log(`Auth verification attempt: Header starts with 'Bearer ': ${startsWithBearer}, Token length: ${token.length}`);
-
     if (!token) {
-        const errorMsg = 'Unauthorized: Missing or invalid Authorization header. Token is missing.';
+        const errorMsg = 'Unauthorized: Missing or invalid Authorization header.';
         console.warn(`Auth verification failed: ${errorMsg}`);
         throw new AuthError(errorMsg, 401);
     }
@@ -36,7 +25,7 @@ async function verifyTokenAndGetUser(request: Request): Promise<{ uid: string }>
         const decodedToken = await getAdminServices().auth.verifyIdToken(token);
         return { uid: decodedToken.uid };
     } catch (error: any) {
-        console.error("Token verification failed:", error.message);
+        console.error("Token verification failed:", error.code, error.message);
         throw new AuthError(`Forbidden: Invalid authentication token. Reason: ${error.code || error.message}`, 403);
     }
 }
@@ -54,8 +43,14 @@ export async function verifySuperAdmin(request: Request): Promise<{ uid: string 
     const db = getAdminServices().firestore;
     const userDoc = await db.collection('users').doc(uid).get();
     
-    if (!userDoc.exists || userDoc.data()?.role !== 'SUPER_ADMIN') {
+    const userData = userDoc.data();
+
+    if (!userDoc.exists || userData?.role !== 'SUPER_ADMIN') {
         throw new AuthError('Forbidden: User is not a Super Admin.', 403);
+    }
+
+    if (userData.isActive === false) {
+        throw new AuthError('Forbidden: Super Admin account is inactive.', 403);
     }
 
     return { uid };
