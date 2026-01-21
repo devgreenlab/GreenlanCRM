@@ -13,9 +13,9 @@ function getAdminApp(): App {
     return existingApp;
   }
 
-  // For managed environments like Firebase App Hosting, initializing with an
-  // empty object allows the SDK to automatically discover credentials and project
-  // configuration, which is a more robust method.
+  // Explicitly set the projectId to match the frontend configuration.
+  // This overrides any project ID discovered from the server's environment
+  // or service account, resolving the "project mismatch" error.
   return initializeApp({
     projectId: 'studio-7786152721-d1bea',
   }, ADMIN_APP_NAME);
