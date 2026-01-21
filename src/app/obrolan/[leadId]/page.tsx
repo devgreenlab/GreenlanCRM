@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -12,7 +11,7 @@ import { ErrorState } from '@/components/shared/error-state';
 
 interface ChatPageProps {
   params: {
-    leadId: string; // The leadId is a required part of the URL for this page.
+    leadId?: string; 
   };
 }
 
@@ -31,9 +30,13 @@ export default function ObrolanLeadIdPage({ params }: ChatPageProps) {
   const firestore = useFirestore();
   const { leadId } = params;
 
-  // The leadId is guaranteed by the route structure, but we check anyway.
+  // If there is no leadId, this is the index page for /obrolan
   if (!leadId) {
-    notFound();
+    return (
+      <div className="h-full flex items-center justify-center bg-secondary">
+        <p className="text-muted-foreground">Pilih obrolan untuk memulai.</p>
+      </div>
+    );
   }
 
   const leadRef = useMemoFirebase(
