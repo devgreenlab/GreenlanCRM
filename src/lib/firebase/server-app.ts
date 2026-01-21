@@ -16,7 +16,9 @@ function getAdminApp(): App {
   // For managed environments like Firebase App Hosting, initializing with an
   // empty object allows the SDK to automatically discover credentials and project
   // configuration, which is a more robust method.
-  return initializeApp({}, ADMIN_APP_NAME);
+  return initializeApp({
+    projectId: 'studio-7786152721-d1bea',
+  }, ADMIN_APP_NAME);
 }
 
 // A helper function to get the Firebase admin services

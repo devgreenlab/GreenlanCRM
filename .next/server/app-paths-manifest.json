@@ -1,7 +1,6 @@
 {
   "/page": "app/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
   "/login/page": "app/login/page.js",
-  "/pengaturan/sales-config/page": "app/pengaturan/sales-config/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
   "/pengaturan/integrasi/page": "app/pengaturan/integrasi/page.js"
 }
