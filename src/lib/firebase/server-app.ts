@@ -13,9 +13,9 @@ function getAdminApp(): App {
     return existingApp;
   }
 
-  // Explicitly set the projectId to match the frontend configuration.
-  // This overrides any project ID discovered from the server's environment
-  // or service account, resolving the "project mismatch" error.
+  // This explicitly sets the project ID for the Admin SDK.
+  // It overrides any project ID found in the service account credentials (like `monospace-4`),
+  // which is the source of the "project mismatch" error.
   return initializeApp({
     projectId: 'studio-7786152721-d1bea',
   }, ADMIN_APP_NAME);
