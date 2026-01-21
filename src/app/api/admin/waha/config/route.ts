@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     }, { status: 200 });
 
   } catch (error: any) {
-    if (error instanceof AuthError) {
+    if (error.name === 'AuthError') {
         return NextResponse.json({ error: error.message, debug: { backendFirebaseProjectId, frontendFirebaseProjectId: firebaseConfig.projectId } }, { status: error.status });
     }
     console.error('Error fetching WAHA config status:', error);
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
                 message: message,
             });
          }
-        if (error instanceof AuthError) {
+        if (error.name === 'AuthError') {
             return NextResponse.json({ error: message, debug: { backendFirebaseProjectId } }, { status: error.status });
         }
         console.error('[API /admin/waha/config POST] Error:', error);

@@ -49,7 +49,7 @@ export async function GET(request: Request) {
             });
         }
         
-        if (error instanceof AuthError) {
+        if (error.name === 'AuthError') {
             return NextResponse.json({ error: message }, { status: error.status });
         }
         

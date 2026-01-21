@@ -46,7 +46,7 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     } catch (error: any) {
-        if (error instanceof AuthError) {
+        if (error.name === 'AuthError') {
             return NextResponse.json({ error: error.message }, { status: error.status });
         }
         console.error('[API /waha/sessions] Error:', error);

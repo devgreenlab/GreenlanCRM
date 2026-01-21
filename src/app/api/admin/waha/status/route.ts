@@ -50,7 +50,7 @@ export async function GET(request: Request) {
         return NextResponse.json(statusData);
 
     } catch (error: any) {
-        if (error instanceof AuthError) {
+        if (error.name === 'AuthError') {
             return NextResponse.json({ error: error.message }, { status: error.status });
         }
         console.error('[API /admin/waha/status] Error:', error);

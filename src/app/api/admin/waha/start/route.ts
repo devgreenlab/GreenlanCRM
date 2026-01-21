@@ -59,7 +59,7 @@ export async function POST(request: Request) {
                message: message,
            });
         }
-        if (error instanceof AuthError) {
+        if (error.name === 'AuthError') {
             return NextResponse.json({ error: message }, { status: error.status });
         }
         console.error('[API /admin/waha/start] Error:', error);
