@@ -1,4 +1,4 @@
-import { getApps, initializeApp, getApp, App } from 'firebase-admin/app';
+import { getApps, initializeApp, getApp, App, credential } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getStorage } from 'firebase-admin/storage';
@@ -13,9 +13,28 @@ function getAdminApp(): App {
     return existingApp;
   }
 
+  // This is a more forceful method to ensure the correct project ID is used.
+  // It attempts to modify the service account from the environment in memory before initializing.
+  try {
+    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+    if (serviceAccountJson) {
+      const serviceAccount = JSON.parse(serviceAccountJson);
+      
+      // Explicitly override the project_id to match the frontend.
+      serviceAccount.project_id = 'studio-7786152721-d1bea';
+      
+      return initializeApp({
+        credential: credential.cert(serviceAccount),
+        // We also specify the projectId here for good measure.
+        projectId: 'studio-7786152721-d1bea',
+      }, ADMIN_APP_NAME);
+    }
+  } catch (error) {
+      console.error("Could not initialize admin app with modified service account, falling back.", error);
+  }
+
+  // Fallback to the previous method if the environment variable is not available or fails parsing.
   // This explicitly sets the project ID for the Admin SDK.
-  // It overrides any project ID found in the service account credentials (like `monospace-4`),
-  // which is the source of the "project mismatch" error.
   return initializeApp({
     projectId: 'studio-7786152721-d1bea',
   }, ADMIN_APP_NAME);
