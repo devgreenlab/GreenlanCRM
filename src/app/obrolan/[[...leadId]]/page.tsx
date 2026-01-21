@@ -1,61 +1,6 @@
-'use client';
-
-import * as React from 'react';
-import { notFound } from 'next/navigation';
-import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-
-import { ChatMessages } from '@/components/chat/chat-messages';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ErrorState } from '@/components/shared/error-state';
-
-interface ChatPageProps {
-  params: {
-    leadId?: string[];
-  };
-}
-
-function MessagesSkeleton() {
-  return (
-    <div className="p-4 space-y-4">
-      <Skeleton className="h-16 w-3/4" />
-      <Skeleton className="h-16 w-3/4 ml-auto" />
-      <Skeleton className="h-10 w-1/2" />
-      <Skeleton className="h-16 w-3/4 ml-auto" />
-    </div>
-  )
-}
-
-export default function ObrolanPage({ params }: ChatPageProps) {
-  const firestore = useFirestore();
-  const leadId = params.leadId?.[0];
-
-  // If there's no leadId, it's the index page.
-  if (!leadId) {
-    return (
-      <div className="h-full flex items-center justify-center bg-secondary">
-        <p className="text-muted-foreground">Pilih obrolan untuk memulai.</p>
-      </div>
-    );
-  }
-
-  const leadRef = useMemoFirebase(
-    () => (firestore && leadId ? doc(firestore, 'leads', leadId) : null),
-    [firestore, leadId]
-  );
-  const { data: lead, isLoading, error } = useDoc(leadRef);
-  
-  if (isLoading) {
-    return <MessagesSkeleton />;
-  }
-
-  if (error) {
-    return <ErrorState message="Gagal memuat data prospek." onRetry={() => window.location.reload()} />;
-  }
-
-  if (!lead) {
-    notFound();
-  }
-
-  return <ChatMessages lead={lead} />;
+// This file is intentionally left blank to resolve a routing conflict.
+// Its logic has been split into /obrolan/page.tsx and /obrolan/[leadId]/page.tsx
+// Exporting null ensures this file does not generate a route.
+export default function ObrolanCatchAllPage() {
+    return null;
 }

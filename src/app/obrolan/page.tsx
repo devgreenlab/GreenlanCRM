@@ -1,6 +1,12 @@
-// This file is intentionally left blank.
-// Its logic has been moved to /obrolan/[[...leadId]]/page.tsx to resolve a routing conflict.
-// Exporting null ensures this file does not generate a route.
+
+'use client';
+
+// This is the index page for the chat section.
+// It renders inside the ChatLayout and shows a prompt to the user.
 export default function ObrolanIndexPage() {
-  return null;
+  return (
+    <div className="h-full flex items-center justify-center bg-secondary">
+      <p className="text-muted-foreground">Pilih obrolan untuk memulai.</p>
+    </div>
+  );
 }
