@@ -1,9 +1,10 @@
 // src/app/api/admin/waha/config/route.ts
 import { NextResponse } from 'next/server';
 import { verifySuperAdmin, AuthError } from '@/lib/server/auth-utils';
-import { getAdminServices } from '@/lib/firebase/server-app';
+import { getAdminServices, getBackendFirebaseProjectId } from '@/lib/firebase/server-app';
 import type { IntegrationSettings } from '@/lib/firestore/types';
 import { createAuditLog } from '@/lib/server/audit';
+import { firebaseConfig } from '@/firebase/config';
 
 export const runtime = 'nodejs';
 
@@ -14,6 +15,7 @@ export const runtime = 'nodejs';
  * This is a read-only status check for the admin UI.
  */
 export async function GET(request: Request) {
+  const backendFirebaseProjectId = getBackendFirebaseProjectId();
   try {
     await verifySuperAdmin(request);
     
@@ -27,14 +29,20 @@ export async function GET(request: Request) {
       isWebhookSecretSet: !!process.env.WAHA_WEBHOOK_SECRET,
     };
 
-    return NextResponse.json(status, { status: 200 });
+    return NextResponse.json({ 
+        ...status, 
+        debug: {
+            backendFirebaseProjectId,
+            frontendFirebaseProjectId: firebaseConfig.projectId
+        } 
+    }, { status: 200 });
 
   } catch (error: any) {
     if (error instanceof AuthError) {
-        return NextResponse.json({ error: error.message }, { status: error.status });
+        return NextResponse.json({ error: error.message, debug: { backendFirebaseProjectId, frontendFirebaseProjectId: firebaseConfig.projectId } }, { status: error.status });
     }
     console.error('Error fetching WAHA config status:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error', debug: { backendFirebaseProjectId, frontendFirebaseProjectId: firebaseConfig.projectId } }, { status: 500 });
   }
 }
 
@@ -43,7 +51,7 @@ export async function GET(request: Request) {
  * Saves non-secret WAHA configuration like the base URL.
  */
 export async function POST(request: Request) {
-    let userUid: string;
+    let userUid: string | undefined;
     try {
         const { uid } = await verifySuperAdmin(request);
         userUid = uid;
@@ -77,8 +85,9 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: 'Configuration saved successfully.' });
 
     } catch (error: any) {
+        const backendFirebaseProjectId = getBackendFirebaseProjectId();
         const message = error.message || 'An unknown error occurred.';
-         if (userUid!) {
+         if (userUid) {
             await createAuditLog({
                 action: 'SAVE_WAHA_CONFIG',
                 byUid: userUid,
@@ -87,9 +96,9 @@ export async function POST(request: Request) {
             });
          }
         if (error instanceof AuthError) {
-            return NextResponse.json({ error: message }, { status: error.status });
+            return NextResponse.json({ error: message, debug: { backendFirebaseProjectId } }, { status: error.status });
         }
         console.error('[API /admin/waha/config POST] Error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: `Internal Server Error: ${message}`, debug: { backendFirebaseProjectId } }, { status: 500 });
     }
 }

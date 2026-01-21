@@ -11,7 +11,7 @@ export const runtime = 'nodejs';
  * Stops a specific WAHA session.
  */
 export async function POST(request: Request) {
-    let userUid: string;
+    let userUid: string | undefined;
     try {
         const { uid } = await verifySuperAdmin(request);
         userUid = uid;
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
 
     } catch (error: any) {
          const message = error.message || 'An unknown error occurred.';
-         if (userUid!) {
+         if (userUid) {
             await createAuditLog({
                 action: 'WAHA_SESSION_LOGOUT',
                 byUid: userUid,
@@ -57,6 +57,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: message }, { status: error.status });
         }
         console.error('[API /admin/waha/stop] Error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: `Internal Server Error: ${message}` }, { status: 500 });
     }
 }

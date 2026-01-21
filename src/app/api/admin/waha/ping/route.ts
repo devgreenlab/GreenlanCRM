@@ -12,7 +12,7 @@ export const runtime = 'nodejs';
  * Requires SUPER_ADMIN role.
  */
 export async function GET(request: Request) {
-    let userUid: string;
+    let userUid: string | undefined;
     try {
         const { uid } = await verifySuperAdmin(request);
         userUid = uid;
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 
     } catch (error: any) {
         const message = error.message || 'An unknown error occurred.';
-        if (userUid!) {
+        if (userUid) {
             await createAuditLog({
                 action: 'TEST_WAHA_CONNECTION',
                 byUid: userUid,
@@ -58,6 +58,6 @@ export async function GET(request: Request) {
         }
         
         console.error('[API /admin/waha/ping] Error:', error.message);
-        return NextResponse.json({ error: 'Internal Server Error during ping test.' }, { status: 500 });
+        return NextResponse.json({ error: `Internal Server Error: ${message}` }, { status: 500 });
     }
 }

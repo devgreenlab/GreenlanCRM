@@ -133,6 +133,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: message }, { status: error.status });
         }
         console.error('[API /wa/send] Error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ error: `Internal Server Error: ${message}` }, { status: 500 });
     }
 }
