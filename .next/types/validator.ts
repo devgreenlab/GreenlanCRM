@@ -83,10 +83,10 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
-// Validate ../../src/app/obrolan/page.tsx
+// Validate ../../src/app/obrolan/[[...leadId]]/page.tsx
 {
-  type __IsExpected<Specific extends AppPageConfig<"/obrolan">> = Specific
-  const handler = {} as typeof import("../../src/app/obrolan/page.js")
+  type __IsExpected<Specific extends AppPageConfig<"/obrolan/[[...leadId]]">> = Specific
+  const handler = {} as typeof import("../../src/app/obrolan/[[...leadId]]/page.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
@@ -227,24 +227,6 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
-// Validate ../../src/app/api/admin/sumopod/config/route.ts
-{
-  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/sumopod/config">> = Specific
-  const handler = {} as typeof import("../../src/app/api/admin/sumopod/config/route.js")
-  type __Check = __IsExpected<typeof handler>
-  // @ts-ignore
-  type __Unused = __Check
-}
-
-// Validate ../../src/app/api/admin/sumopod/secrets/route.ts
-{
-  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/sumopod/secrets">> = Specific
-  const handler = {} as typeof import("../../src/app/api/admin/sumopod/secrets/route.js")
-  type __Check = __IsExpected<typeof handler>
-  // @ts-ignore
-  type __Unused = __Check
-}
-
 // Validate ../../src/app/api/admin/waha/config/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/waha/config">> = Specific
@@ -254,19 +236,19 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
-// Validate ../../src/app/api/admin/waha/key/route.ts
+// Validate ../../src/app/api/admin/waha/logout/route.ts
 {
-  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/waha/key">> = Specific
-  const handler = {} as typeof import("../../src/app/api/admin/waha/key/route.js")
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/waha/logout">> = Specific
+  const handler = {} as typeof import("../../src/app/api/admin/waha/logout/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
 }
 
-// Validate ../../src/app/api/admin/waha/logout/route.ts
+// Validate ../../src/app/api/admin/waha/ping/route.ts
 {
-  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/waha/logout">> = Specific
-  const handler = {} as typeof import("../../src/app/api/admin/waha/logout/route.js")
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/waha/ping">> = Specific
+  const handler = {} as typeof import("../../src/app/api/admin/waha/ping/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
@@ -290,10 +272,10 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
-// Validate ../../src/app/api/admin/waha/test/route.ts
+// Validate ../../src/app/api/admin/waha/stop/route.ts
 {
-  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/waha/test">> = Specific
-  const handler = {} as typeof import("../../src/app/api/admin/waha/test/route.js")
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/waha/stop">> = Specific
+  const handler = {} as typeof import("../../src/app/api/admin/waha/stop/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check
